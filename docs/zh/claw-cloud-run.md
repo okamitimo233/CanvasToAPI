@@ -1,15 +1,15 @@
 # 部署到 Claw Cloud Run
 
-本指南将帮助你在 [Claw Cloud Run](https://claw.cloud/) 上部署 `aistudio-to-api` 服务。
+本指南将帮助你在 [Claw Cloud Run](https://claw.cloud/) 上部署 `canvas-to-api` 服务。
 
 ## 📦 部署步骤
 
 1. **登录**：前往 [https://us-west-1.run.claw.cloud](https://us-west-1.run.claw.cloud) 并登录你的账号。
 2. **创建应用**：进入 **App Launchpad**，点击右上角的 **Create App** 按钮。
 3. **配置应用**：填写以下参数：
-   - **Application Name**：填写一个你喜欢的英文名称（例如 `aistudio-api`）。
+   - **Application Name**：填写一个你喜欢的英文名称（例如 `canvas-api`）。
    - **Image**：选择 **Public**。
-   - **Image Name**：`ghcr.io/ibuhub/aistudio-to-api:latest`
+   - **Image Name**：`ghcr.io/ibuhub/canvas-to-api:latest`
 
    **Usage**:
    - **CPU**：`0.5`

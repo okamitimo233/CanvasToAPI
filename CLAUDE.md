@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AIStudioToAPI is a proxy server that wraps Gemini Canvas's web interface and exposes it as API endpoints compatible with OpenAI, Gemini, and Anthropic API formats. The system uses browser automation (Playwright with Camoufox/Firefox) to interact with the Canvas web interface and translates API requests into browser interactions.
+CanvasToAPI is a proxy server that wraps Gemini Canvas's web interface and exposes it as API endpoints compatible with OpenAI, Gemini, and Anthropic API formats. The system uses browser automation (Playwright with Camoufox/Firefox) to interact with the Canvas web interface and translates API requests into browser interactions.
 
 ## Common Commands
 

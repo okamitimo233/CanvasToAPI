@@ -1,15 +1,15 @@
 # Deploy on Claw Cloud Run
 
-This guide will help you deploy the `aistudio-to-api` service on [Claw Cloud Run](https://claw.cloud/).
+This guide will help you deploy the `canvas-to-api` service on [Claw Cloud Run](https://claw.cloud/).
 
 ## 📦 Deployment Steps
 
 1. **Login**: Go to [https://us-west-1.run.claw.cloud](https://us-west-1.run.claw.cloud) and log in to your account.
 2. **Create App**: Navigate to **App Launchpad** and click the **Create App** button in the top right corner.
 3. **Configure Application**: Fill in the following parameters:
-   - **Application Name**: Enter any name you prefer (e.g., `aistudio-api`).
+   - **Application Name**: Enter any name you prefer (e.g., `canvas-api`).
    - **Image**: Select **Public**.
-   - **Image Name**: `ghcr.io/ibuhub/aistudio-to-api:latest`
+   - **Image Name**: `ghcr.io/ibuhub/canvas-to-api:latest`
 
    **Usage**:
    - **CPU**: `0.5`

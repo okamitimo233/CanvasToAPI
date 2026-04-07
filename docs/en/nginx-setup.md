@@ -4,7 +4,7 @@ If you need to access via a domain name or want unified management at the revers
 
 ## 🚀 Quick Start
 
-Create an Nginx configuration file `/etc/nginx/sites-available/aistudio-api`:
+Create an Nginx configuration file `/etc/nginx/sites-available/canvas-api`:
 
 ```nginx
 server {
@@ -56,7 +56,7 @@ server {
 
 ```bash
 # Create symbolic link to enable site
-sudo ln -s /etc/nginx/sites-available/aistudio-api /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/canvas-api /etc/nginx/sites-enabled/
 
 # Test if configuration is correct
 sudo nginx -t

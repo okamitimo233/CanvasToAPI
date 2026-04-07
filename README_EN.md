@@ -20,8 +20,8 @@ A tool that wraps the Gemini Canvas web interface to provide OpenAI API, Gemini 
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/iBUHub/AIStudioToAPI.git
-   cd AIStudioToAPI
+   git clone https://github.com/iBUHub/CanvasToAPI.git
+   cd CanvasToAPI
    ```
 
 2. Run the setup script:
@@ -70,16 +70,16 @@ Deploy using Docker without pre-extracting authentication credentials.
 
 ```bash
 docker run -d \
-  --name aistudio-to-api \
+  --name canvas-to-api \
   -p 7861:7861 \
   -v /path/to/auth:/app/configs/auth \
   -e API_KEYS=your-api-key-1,your-api-key-2 \
   -e TZ=America/New_York \
   --restart unless-stopped \
-  ghcr.io/ibuhub/aistudio-to-api:latest
+  ghcr.io/ibuhub/canvas-to-api:latest
 ```
 
-> 💡 **Tip:** If `ghcr.io` is slow or unavailable, you can use the Docker Hub image: `ibuhub/aistudio-to-api:latest`.
+> 💡 **Tip:** If `ghcr.io` is slow or unavailable, you can use the Docker Hub image: `ibuhub/canvas-to-api:latest`.
 
 Parameters:
 
@@ -93,12 +93,12 @@ Parameters:
 Create a `docker-compose.yml` file:
 
 ```yaml
-name: aistudio-to-api
+name: canvas-to-api
 
 services:
   app:
-    image: ghcr.io/ibuhub/aistudio-to-api:latest
-    container_name: aistudio-to-api
+    image: ghcr.io/ibuhub/canvas-to-api:latest
+    container_name: canvas-to-api
     ports:
       # API server port (if using a reverse proxy, strongly consider `127.0.0.1:7861`)
       - 7861:7861
@@ -120,20 +120,20 @@ If you prefer to build the Docker image yourself, you can use the following comm
 1. Build the image:
 
    ```bash
-   docker build -t aistudio-to-api .
+   docker build -t canvas-to-api .
    ```
 
 2. Run the container:
 
    ```bash
    docker run -d \
-     --name aistudio-to-api \
+     --name canvas-to-api \
      -p 7861:7861 \
      -v /path/to/auth:/app/configs/auth \
      -e API_KEYS=your-api-key-1,your-api-key-2 \
      -e TZ=America/New_York \
      --restart unless-stopped \
-     aistudio-to-api
+     canvas-to-api
    ```
 
 #### 🔑 Step 2: Account Management
@@ -275,12 +275,12 @@ This project is based on [**iBUHub/AIStudioToAPI**](https://github.com/iBUHub/AI
 
 ## 🤝 Contributors
 
-[![Contributors](https://contrib.rocks/image?repo=iBUHub/AIStudioToAPI)](https://github.com/iBUHub/AIStudioToAPI/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=iBUHub/CanvasToAPI)](https://github.com/iBUHub/CanvasToAPI/graphs/contributors)
 
 We would like to thank all developers who have contributed their time, effort, and wisdom to this project.
 
 ---
 
-If you find AIStudioToAPI useful, consider giving it a ⭐️!
+If you find CanvasToAPI useful, consider giving it a ⭐️!
 
-[![Star History Chart](https://api.star-history.com/svg?repos=iBUHub/AIStudioToAPI&type=date&legend=top-left)](https://www.star-history.com/#iBUHub/AIStudioToAPI&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=iBUHub/CanvasToAPI&type=date&legend=top-left)](https://www.star-history.com/#iBUHub/CanvasToAPI&type=date&legend=top-left)

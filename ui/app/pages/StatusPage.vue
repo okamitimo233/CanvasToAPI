@@ -927,8 +927,8 @@
                                     </svg>
                                     GitHub {{ t("repo") }}
                                 </span>
-                                <a href="https://github.com/iBUHub/AIStudioToAPI" target="_blank" class="repo-link">
-                                    iBUHub/AIStudioToAPI
+                                <a href="https://github.com/iBUHub/CanvasToAPI" target="_blank" class="repo-link">
+                                    iBUHub/CanvasToAPI
                                 </a>
                             </div>
                             <div class="status-item">
@@ -1005,7 +1005,7 @@
                                     >
                                         <a
                                             :href="
-                                                state.releaseUrl || 'https://github.com/iBUHub/AIStudioToAPI/releases'
+                                                state.releaseUrl || 'https://github.com/iBUHub/CanvasToAPI/releases'
                                             "
                                             target="_blank"
                                             class="update-link"
@@ -1015,7 +1015,7 @@
                                         <a
                                             class="copy-icon"
                                             :href="
-                                                state.releaseUrl || 'https://github.com/iBUHub/AIStudioToAPI/releases'
+                                                state.releaseUrl || 'https://github.com/iBUHub/CanvasToAPI/releases'
                                             "
                                             target="_blank"
                                             style="color: inherit; display: inline-flex"
@@ -1041,7 +1041,7 @@
                                     </span>
                                     <span v-else class="clickable-version" :title="t('viewRelease')">
                                         <a
-                                            href="https://github.com/iBUHub/AIStudioToAPI/releases"
+                                            href="https://github.com/iBUHub/CanvasToAPI/releases"
                                             target="_blank"
                                             style="color: inherit; text-decoration: none"
                                         >
@@ -1049,7 +1049,7 @@
                                         </a>
                                         <a
                                             class="copy-icon"
-                                            href="https://github.com/iBUHub/AIStudioToAPI/releases"
+                                            href="https://github.com/iBUHub/CanvasToAPI/releases"
                                             target="_blank"
                                             style="color: inherit; display: inline-flex"
                                         >

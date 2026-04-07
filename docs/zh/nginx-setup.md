@@ -4,7 +4,7 @@
 
 ## 🚀 快速开始
 
-创建 Nginx 配置文件 `/etc/nginx/sites-available/aistudio-api`：
+创建 Nginx 配置文件 `/etc/nginx/sites-available/canvas-api`：
 
 ```nginx
 server {
@@ -55,7 +55,7 @@ server {
 
 ```bash
 # 创建符号链接以启用站点
-sudo ln -s /etc/nginx/sites-available/aistudio-api /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/canvas-api /etc/nginx/sites-enabled/
 
 # 检查一下配置是否正确
 sudo nginx -t

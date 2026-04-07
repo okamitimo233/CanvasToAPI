@@ -20,8 +20,8 @@
 1. 克隆仓库：
 
    ```bash
-   git clone https://github.com/iBUHub/AIStudioToAPI.git
-   cd AIStudioToAPI
+   git clone https://github.com/iBUHub/CanvasToAPI.git
+   cd CanvasToAPI
    ```
 
 2. 运行快速设置脚本：
@@ -70,16 +70,16 @@
 
 ```bash
 docker run -d \
-  --name aistudio-to-api \
+  --name canvas-to-api \
   -p 7861:7861 \
   -v /path/to/auth:/app/configs/auth \
   -e API_KEYS=your-api-key-1,your-api-key-2 \
   -e TZ=Asia/Shanghai \
   --restart unless-stopped \
-  ghcr.io/ibuhub/aistudio-to-api:latest
+  ghcr.io/ibuhub/canvas-to-api:latest
 ```
 
-> 💡 **提示：** 如果 `ghcr.io` 访问速度较慢或不可用，可以使用 Docker Hub 镜像：`ibuhub/aistudio-to-api:latest`。
+> 💡 **提示：** 如果 `ghcr.io` 访问速度较慢或不可用，可以使用 Docker Hub 镜像：`ibuhub/canvas-to-api:latest`。
 
 参数说明：
 
@@ -93,12 +93,12 @@ docker run -d \
 创建 `docker-compose.yml` 文件：
 
 ```yaml
-name: aistudio-to-api
+name: canvas-to-api
 
 services:
   app:
-    image: ghcr.io/ibuhub/aistudio-to-api:latest
-    container_name: aistudio-to-api
+    image: ghcr.io/ibuhub/canvas-to-api:latest
+    container_name: canvas-to-api
     ports:
       # API 服务器端口（如果使用反向代理，强烈建议改成 127.0.0.1:7861）
       - 7861:7861
@@ -113,7 +113,7 @@ services:
       TZ: Asia/Shanghai
 ```
 
-> 💡 **提示：** 如果 `ghcr.io` 访问速度较慢或不可用，可以将 `image` 改为 `ibuhub/aistudio-to-api:latest`。
+> 💡 **提示：** 如果 `ghcr.io` 访问速度较慢或不可用，可以将 `image` 改为 `ibuhub/canvas-to-api:latest`。
 
 ##### 🛠️ 方式 3：从源码构建
 
@@ -122,20 +122,20 @@ services:
 1. 构建镜像：
 
    ```bash
-   docker build -t aistudio-to-api .
+   docker build -t canvas-to-api .
    ```
 
 2. 运行容器：
 
    ```bash
    docker run -d \
-     --name aistudio-to-api \
+     --name canvas-to-api \
      -p 7861:7861 \
      -v /path/to/auth:/app/configs/auth \
      -e API_KEYS=your-api-key-1,your-api-key-2 \
      -e TZ=Asia/Shanghai \
      --restart unless-stopped \
-     aistudio-to-api
+     canvas-to-api
    ```
 
 #### 🔑 步骤 2：账号管理
@@ -277,12 +277,12 @@ services:
 
 ## 🤝 贡献者
 
-[![Contributors](https://contrib.rocks/image?repo=iBUHub/AIStudioToAPI)](https://github.com/iBUHub/AIStudioToAPI/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=iBUHub/CanvasToAPI)](https://github.com/iBUHub/CanvasToAPI/graphs/contributors)
 
 感谢所有为本项目付出汗水与智慧的开发者。
 
 ---
 
-如果你觉得 AIStudioToAPI 对你有帮助，欢迎给项目点一个 ⭐️！
+如果你觉得 CanvasToAPI 对你有帮助，欢迎给项目点一个 ⭐️！
 
-[![Star History Chart](https://api.star-history.com/svg?repos=iBUHub/AIStudioToAPI&type=date&legend=top-left)](https://www.star-history.com/#iBUHub/AIStudioToAPI&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=iBUHub/CanvasToAPI&type=date&legend=top-left)](https://www.star-history.com/#iBUHub/CanvasToAPI&type=date&legend=top-left)
