@@ -52,7 +52,7 @@ A tool that exposes a Gemini web session as OpenAI API, Gemini API, and Anthropi
 
    Open this page in the browser that should carry the Gemini session:
 
-   [https://gemini.google.com/share/38b50bd0acb0](https://gemini.google.com/share/38b50bd0acb0)
+   [https://gemini.google.com/share/4e4e3845ab29](https://gemini.google.com/share/4e4e3845ab29)
 
    The actual page content is also available in the repository at [scripts/client/canvas.html](scripts/client/canvas.html).
 
@@ -118,7 +118,7 @@ services:
 
 After the container starts, you still need to manually open the following page and connect a browser session:
 
-[https://gemini.google.com/share/38b50bd0acb0](https://gemini.google.com/share/38b50bd0acb0)
+[https://gemini.google.com/share/4e4e3845ab29](https://gemini.google.com/share/4e4e3845ab29)
 
 On that page, manually enter the browser tag (`Browser Identifier`), API key, and the server WebSocket address (`Server WS Endpoint`), for example `ws://your-host:7861/ws` or `wss://your-host/ws`. The API key should be the same one you use for API requests. Once the browser session is connected, the status page will show it as online and the API can begin forwarding requests.
 
@@ -204,7 +204,7 @@ The current version no longer uses local `auth` files or a `setup-auth` bootstra
 
 1. Start the server and make sure `PORT` is reachable from the browser that will carry the session.
 2. Open the console and check the browser-session endpoint and connection status.
-3. Open [https://gemini.google.com/share/38b50bd0acb0](https://gemini.google.com/share/38b50bd0acb0) in a browser.
+3. Open [https://gemini.google.com/share/4e4e3845ab29](https://gemini.google.com/share/4e4e3845ab29) in a browser.
 4. Enter the browser identifier (`Browser Identifier`), API key, and the server WebSocket endpoint (`Server WS Endpoint`) on that page.
 5. Use the same API key that you use for API requests. For local deployments, `Server WS Endpoint` can be `ws://127.0.0.1:7861/ws`. If the console is accessed through `https://` on a remote server, it should be `wss://your-domain-or-public-address/ws`.
 6. Wait until the status page shows at least one online browser session before sending API traffic.
