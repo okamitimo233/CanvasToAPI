@@ -168,16 +168,14 @@ On that page, manually enter the browser tag (`Browser Identifier`) and the serv
 
 #### 🌐 Session Routing Configuration
 
-| Variable                        | Description                                                                                                 | Default   |
-| :------------------------------ | :---------------------------------------------------------------------------------------------------------- | :-------- |
-| `WS_PORT`                       | WebSocket port used by browser sessions to connect back to the server.                                      | `9997`    |
-| `ROUND`                         | Session selection strategy. Supported values: `round` and `random`.                                         | `round`   |
-| `BROWSER_WS_ERROR_THRESHOLD`    | Automatically disable a browser session after this many accumulated browser / WebSocket errors.             | `3`       |
-| `MAX_RETRIES`                   | Maximum number of retries for a failed request.                                                             | `3`       |
-| `RETRY_DELAY`                   | Delay between retries in milliseconds.                                                                      | `2000`    |
-| `SWITCH_ON_USES`                | Switch to the next browser session after this many uses. Set `0` to disable usage-based switching.          | `40`      |
-| `FAILURE_THRESHOLD`             | Switch to another session after this many consecutive failures. Set `0` to disable failure-based switching. | `3`       |
-| `IMMEDIATE_SWITCH_STATUS_CODES` | HTTP status codes that trigger immediate session switching. Comma-separated; leave empty to disable.        | `429,503` |
+| Variable                        | Description                                                                                          | Default   |
+| :------------------------------ | :--------------------------------------------------------------------------------------------------- | :-------- |
+| `WS_PORT`                       | WebSocket port used by browser sessions to connect back to the server.                               | `9997`    |
+| `ROUND`                         | Session selection strategy. Supported values: `round` and `random`.                                  | `round`   |
+| `SESSION_ERROR_THRESHOLD`       | Automatically disable a browser session after this many accumulated browser / WebSocket errors.      | `3`       |
+| `MAX_RETRIES`                   | Maximum number of retries for a failed request.                                                      | `3`       |
+| `RETRY_DELAY`                   | Delay between retries in milliseconds.                                                               | `2000`    |
+| `IMMEDIATE_SWITCH_STATUS_CODES` | HTTP status codes that trigger immediate session switching. Comma-separated; leave empty to disable. | `429,503` |
 
 #### 🗒️ Other Configuration
 

@@ -48,31 +48,13 @@ class UserAbortedError extends Error {
  * Thrown when a context initialization is aborted (e.g., marked for deletion or background preload cancelled)
  */
 class ContextAbortedError extends Error {
-    constructor(authIndex, reason = "marked for deletion") {
-        super(`Context initialization aborted for index ${authIndex} (${reason})`);
+    constructor(sessionId, reason = "marked for deletion") {
+        super(`Context initialization aborted for session ${sessionId} (${reason})`);
         this.name = "ContextAbortedError";
         this.isContextAborted = true;
-        this.authIndex = authIndex;
+        this.sessionId = sessionId;
         this.reason = reason;
     }
-}
-
-/**
- * Helper function to check if an error is an auth expiration error
- * @param {Error} error - The error to check
- * @returns {boolean} True if the error indicates auth expiration
- */
-function isAuthExpiredError(error) {
-    return error instanceof AuthExpiredError || error?.isAuthExpired === true;
-}
-
-/**
- * Helper function to check if an error is a reconnect cancellation
- * @param {Error} error - The error to check
- * @returns {boolean} True if the error indicates reconnect cancellation
- */
-function isReconnectCancelledError(error) {
-    return error instanceof ReconnectCancelledError || error?.isReconnectCancelled === true;
 }
 
 /**
@@ -105,7 +87,7 @@ function isContextAbortedError(error) {
         return true;
     }
     // Also check message string for backward compatibility
-    if (typeof error?.message === "string" && error.message.includes("aborted for index")) {
+    if (typeof error?.message === "string" && error.message.includes("aborted for session")) {
         return true;
     }
     return false;
@@ -114,9 +96,7 @@ function isContextAbortedError(error) {
 module.exports = {
     AuthExpiredError,
     ContextAbortedError,
-    isAuthExpiredError,
     isContextAbortedError,
-    isReconnectCancelledError,
     isUserAbortedError,
     ReconnectCancelledError,
     UserAbortedError,

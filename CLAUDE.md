@@ -57,38 +57,28 @@ The system follows a modular architecture with clear separation of concerns:
 
 - Main orchestrator that integrates all modules
 - Manages HTTP/WebSocket servers
-- Coordinates between authentication, browser management, and request handling
+- Coordinates between session routing, WebSocket connections, and request handling
 - Entry point: `main.js` instantiates and starts this system
 
-**BrowserManager** (`src/core/BrowserManager.js`)
-
-- Manages headless Firefox/Camoufox browser instances
-- Implements multi-context architecture: maintains a pool of browser contexts (Map: authIndex -> {context, page, healthMonitorInterval})
-- Handles context switching between different Google accounts
-- Injects and manages the client-side script (`build.js`) that communicates with Canvas
-- Supports background context initialization and rebalancing
-
-**ConnectionRegistry** (`src/core/ConnectionRegistry.js`)
+**SessionRegistry** (`src/core/SessionRegistry.js`)
 
 - Manages WebSocket connections from browser contexts
 - Routes messages to appropriate MessageQueue instances
 - Implements grace period for reconnection attempts
-- Supports multiple concurrent connections (one per auth context)
+- Supports multiple concurrent connections (one per browser session)
 
 **RequestHandler** (`src/core/RequestHandler.js`)
 
 - Processes incoming API requests
-- Coordinates retry logic and account switching
-- Delegates to AuthSwitcher for account management
+- Coordinates retry logic and session switching
+- Delegates to session routing helpers for browser session management
 - Delegates to FormatConverter for API format translation
 
-**AuthSwitcher** (`src/auth/AuthSwitcher.js`)
+**Session Routing**
 
-- Handles automatic account switching based on:
-  - Usage count (SWITCH_ON_USES)
-  - Failure threshold (FAILURE_THRESHOLD)
-  - Immediate status codes (IMMEDIATE_SWITCH_STATUS_CODES: 429, 503)
-- Manages system busy state during switches
+- Uses `ROUND` to auto-select a browser session for each new request
+- Uses `IMMEDIATE_SWITCH_STATUS_CODES` to retry immediately on another session for selected HTTP errors
+- Uses `SESSION_ERROR_THRESHOLD` to disable unhealthy browser sessions after repeated browser / WebSocket errors
 
 **FormatConverter** (`src/core/FormatConverter.js`)
 
@@ -99,17 +89,17 @@ The system follows a modular architecture with clear separation of concerns:
 
 - Loads authentication data from `configs/auth/auth-N.json` files
 - Validates and deduplicates accounts by email
-- Maintains rotation indices for account switching
+- Tracks loaded browser session material from `configs/auth/auth-N.json`
 
 ### Request Flow
 
 1. Client sends API request (OpenAI/Gemini/Anthropic format) → Express routes
 2. RequestHandler receives request → FormatConverter normalizes to Gemini format
 3. RequestHandler checks ConnectionRegistry for active WebSocket
-4. If no connection: BrowserManager initializes/switches browser context
+4. If no connection: the request fails fast until a browser session reconnects
 5. Request sent via WebSocket to browser context → injected script interacts with Canvas
 6. Response streams back via WebSocket → FormatConverter translates to requested format
-7. On failure: AuthSwitcher may trigger account switch based on configured thresholds
+7. On selected failures: RequestHandler may retry on another browser session
 
 ### Multi-Context Architecture
 
@@ -117,8 +107,8 @@ The system maintains multiple browser contexts simultaneously:
 
 - Each Google account gets its own browser context and page
 - Contexts are initialized on-demand or in background
-- Current account tracked via `browserManager.currentAuthIndex`
-- Background initialization prevents request delays when switching accounts
+- Current session is chosen per request by the session registry
+- Immediate retry can switch to another live session when configured
 - Context pool rebalancing ensures optimal resource usage
 
 ### UI Structure
@@ -126,7 +116,7 @@ The system maintains multiple browser contexts simultaneously:
 - **Frontend**: Vue.js 3 + Element Plus + Vite
 - **Location**: `ui/` directory
 - **Build output**: `ui/dist/` (served by Express)
-- **Features**: Account management, VNC login, status monitoring, auth file upload/download
+- **Features**: Session status monitoring and runtime settings
 
 ## Configuration
 
@@ -135,14 +125,12 @@ The system maintains multiple browser contexts simultaneously:
 Key variables (see `.env.example` for full list):
 
 - `PORT`: API server port (default: 7861)
-- `WS_PORT`: WebSocket port for browser communication (default: 9998)
+- `WS_PORT`: WebSocket port for browser communication (default: 9997)
 - `API_KEYS`: Comma-separated API keys for client authentication
-- `INITIAL_AUTH_INDEX`: Starting account index (default: 0)
 - `STREAMING_MODE`: "real" or "fake" streaming
-- `SWITCH_ON_USES`: Auto-switch after N requests (default: 40)
-- `FAILURE_THRESHOLD`: Switch after N consecutive failures (default: 3)
+- `ROUND`: Session selection strategy (`round` or `random`)
+- `SESSION_ERROR_THRESHOLD`: Disable a browser session after repeated browser / WebSocket errors (default: 3)
 - `IMMEDIATE_SWITCH_STATUS_CODES`: Status codes triggering immediate switch (default: 429,503)
-- `HTTP_PROXY`/`HTTPS_PROXY`: Proxy configuration for Google services
 - `CAMOUFOX_EXECUTABLE_PATH`: Custom browser executable path
 - `MAX_CONTEXTS`: Maximum number of accounts logged in simultaneously for faster switching (default: 1, memory usage: ~700MB per account)
 - `LOG_LEVEL`: Set to "DEBUG" for verbose logging
@@ -169,13 +157,13 @@ Edit `configs/models.json` to customize available models and their settings.
 ### WebSocket Communication
 
 - Browser contexts connect to WebSocket server on WS_PORT
-- Each connection identified by authIndex
+- Each connection identified by a session id
 - MessageQueue pattern for request/response correlation
 - Grace period (60s) for reconnection before triggering callback
 
 ### Account Switching
 
-- Automatic switching based on usage/failures
+- Automatic selection based on the configured session routing strategy
 - Supports immediate switching on specific HTTP status codes
 - System busy flag prevents concurrent switches
 - Lightweight reconnect attempts before full context switch

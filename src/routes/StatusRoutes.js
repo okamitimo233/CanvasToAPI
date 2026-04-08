@@ -103,6 +103,24 @@ class StatusRoutes {
             }
         });
 
+        app.put("/api/settings/selection-strategy", isAuthenticated, (req, res) => {
+            const strategy = String(req.body.strategy || "")
+                .trim()
+                .toLowerCase();
+            if (strategy === "round" || strategy === "random") {
+                this.config.sessionSelectionStrategy = strategy;
+                this.serverSystem.config.sessionSelectionStrategy = strategy;
+                this.logger.info(`[WebUI] Session selection strategy switched to: ${strategy}`);
+                res.status(200).json({
+                    message: "settingUpdateSuccess",
+                    setting: "selectionStrategy",
+                    value: strategy,
+                });
+            } else {
+                res.status(400).json({ error: "Invalid strategy", message: "settingFailed" });
+            }
+        });
+
         app.put("/api/settings/force-thinking", isAuthenticated, (req, res) => {
             this.serverSystem.forceThinking = !this.serverSystem.forceThinking;
             const statusText = this.serverSystem.forceThinking;
@@ -163,18 +181,17 @@ class StatusRoutes {
     _getSystemSummary() {
         return {
             browserSessionCount: this.serverSystem.sessionRegistry.getConnectionCount(),
-            browserWsErrorThreshold: this.config.browserWsErrorThreshold,
             debugMode: LoggingService.isDebugEnabled(),
-            failureThreshold: this.config.failureThreshold,
             forceThinking: this.serverSystem.forceThinking,
             forceUrlContext: this.serverSystem.forceUrlContext,
             forceWebSearch: this.serverSystem.forceWebSearch,
             immediateSwitchStatusCodes: this.config.immediateSwitchStatusCodes,
             logMaxCount: this.logger.displayLimit || 100,
+            maxRetries: this.config.maxRetries,
             selectionStrategy: this.config.sessionSelectionStrategy,
+            sessionErrorThreshold: this.config.sessionErrorThreshold,
             sessionSelectionState: this.serverSystem.sessionRegistry.getSelectionState(),
             streamingMode: this.serverSystem.streamingMode,
-            switchOnUses: this.config.switchOnUses,
             wsPort: this.config.wsPort,
         };
     }

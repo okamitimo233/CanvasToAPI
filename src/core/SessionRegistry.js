@@ -16,12 +16,10 @@ class SessionRegistry extends EventEmitter {
         this.config = config;
         this.connections = new Map();
         this.messageQueues = new Map();
-        this.lastSelectedAt = null;
-        this.lastSelectedConnectionId = null;
         this.roundCursor = 0;
         this.selectionCount = 0;
-        this.browserWsErrorThreshold = Number.isFinite(config.browserWsErrorThreshold)
-            ? Math.max(1, config.browserWsErrorThreshold)
+        this.sessionErrorThreshold = Number.isFinite(config.sessionErrorThreshold)
+            ? Math.max(1, config.sessionErrorThreshold)
             : 3;
     }
 
@@ -32,7 +30,6 @@ class SessionRegistry extends EventEmitter {
             disabledAt: null,
             failureCount: 0,
             lastError: null,
-            lastSelectedAt: null,
             lastUsedAt: null,
             meta,
             selectedCount: 0,
@@ -79,7 +76,7 @@ class SessionRegistry extends EventEmitter {
         return this.connections.get(connectionId)?.ws || null;
     }
 
-    getConnectionByAuth(connectionId) {
+    getConnectionBySession(connectionId) {
         return this.getConnection(connectionId);
     }
 
@@ -90,7 +87,6 @@ class SessionRegistry extends EventEmitter {
             disabledAt: entry.disabledAt,
             failureCount: entry.failureCount,
             lastError: entry.lastError,
-            lastSelectedAt: entry.lastSelectedAt,
             lastUsedAt: entry.lastUsedAt,
             meta: entry.meta,
             readyState: entry.ws.readyState,
@@ -155,7 +151,6 @@ class SessionRegistry extends EventEmitter {
             disabledAt: entry.disabledAt,
             failureCount: entry.failureCount,
             lastError: entry.lastError,
-            lastSelectedAt: entry.lastSelectedAt,
             lastUsedAt: entry.lastUsedAt,
             selectedCount: entry.selectedCount,
             usageCount: entry.usageCount,
@@ -164,9 +159,6 @@ class SessionRegistry extends EventEmitter {
 
     getSelectionState() {
         return {
-            lastSelectedAt: this.lastSelectedAt,
-            lastSelectedConnectionId: this.lastSelectedConnectionId,
-            lastSelectedSessionId: this.lastSelectedConnectionId,
             roundCursor: this.roundCursor,
             selectionCount: this.selectionCount,
         };
@@ -214,7 +206,7 @@ class SessionRegistry extends EventEmitter {
         return this.messageQueues.get(requestId)?.connectionId || null;
     }
 
-    getAuthIndexForRequest(requestId) {
+    getSessionIdForRequest(requestId) {
         return this.getConnectionIdForRequest(requestId);
     }
 
@@ -249,7 +241,7 @@ class SessionRegistry extends EventEmitter {
         return closedCount;
     }
 
-    closeMessageQueuesForAuth(connectionId, reason = "connection_closed") {
+    closeMessageQueuesForSession(connectionId, reason = "connection_closed") {
         return this.closeQueuesForConnection(connectionId, reason);
     }
 
@@ -405,7 +397,7 @@ class SessionRegistry extends EventEmitter {
             type,
         };
 
-        if (entry.failureCount >= this.browserWsErrorThreshold && !entry.disabledAt) {
+        if (entry.failureCount >= this.sessionErrorThreshold && !entry.disabledAt) {
             entry.disabledAt = Date.now();
             this.logger.error(
                 `[Session] Browser ${connectionId} disabled after ${entry.failureCount} error(s). Last error: ${message}`
@@ -414,7 +406,7 @@ class SessionRegistry extends EventEmitter {
         }
 
         this.logger.warn(
-            `[Session] Browser ${connectionId} error recorded (${entry.failureCount}/${this.browserWsErrorThreshold}): ${message}`
+            `[Session] Browser ${connectionId} error recorded (${entry.failureCount}/${this.sessionErrorThreshold}): ${message}`
         );
     }
 
@@ -434,20 +426,8 @@ class SessionRegistry extends EventEmitter {
             return;
         }
 
-        const timestamp = new Date().toISOString();
-        entry.lastSelectedAt = timestamp;
         entry.selectedCount += 1;
-        this.lastSelectedAt = timestamp;
-        this.lastSelectedConnectionId = connectionId;
         this.selectionCount += 1;
-    }
-
-    isInGracePeriod() {
-        return false;
-    }
-
-    isReconnectingInProgress() {
-        return false;
     }
 
     _safeCloseWebSocket(ws, code, reason) {

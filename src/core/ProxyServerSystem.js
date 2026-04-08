@@ -31,7 +31,7 @@ class ProxyServerSystem extends EventEmitter {
         this.forceUrlContext = this.config.forceUrlContext;
 
         this.sessionRegistry = new SessionRegistry(this.logger, this.config);
-        this.requestHandler = new RequestHandler(this, this.sessionRegistry, this.logger, null, this.config, null);
+        this.requestHandler = new RequestHandler(this, this.sessionRegistry, this.logger, this.config);
 
         this.httpServer = null;
         this.wsServer = null;

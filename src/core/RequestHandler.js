@@ -1,6 +1,6 @@
 /**
  * File: src/core/RequestHandler.js
- * Description: Main request handler that processes API requests, manages retries, and coordinates between authentication and format conversion
+ * Description: Main request handler that processes API requests, manages retries, and coordinates session routing and format conversion
  *
  * Author: iBUHUB
  */
@@ -20,53 +20,29 @@ const TIMEOUTS = {
 };
 
 class RequestHandler {
-    constructor(serverSystem, connectionRegistry, logger, browserManager, config, authSource) {
+    constructor(serverSystem, connectionRegistry, logger, config) {
         this.serverSystem = serverSystem;
         this.connectionRegistry = connectionRegistry;
         this.logger = logger;
-        this.browserManager = browserManager || null;
-        this.config = config || browserManager || {};
-        this.authSource = authSource || null;
+        this.config = config || {};
 
-        this.authSwitcher = {
-            currentAuthIndex: null,
-            failureCount: 0,
-            handleRequestFailureAndSwitch: async errorDetails => this._handleRequestFailureAndSwitch(errorDetails),
-            incrementUsageCount: connectionId => this._incrementSessionUsageCount(connectionId),
-            isSystemBusy: false,
-            shouldSwitchByUsage: connectionId => this._shouldSwitchByUsage(connectionId),
-            switchToNextAuth: async excludedConnectionIds => this._switchToNextSession(excludedConnectionIds),
-            switchToSpecificAuth: async () => false,
-            usageCount: 0,
+        this.sessionState = {
+            currentSessionId: null,
+            switchToNextSession: async excludedConnectionIds => this._switchToNextSession(excludedConnectionIds),
         };
         this.formatConverter = new FormatConverter(logger, serverSystem);
 
         this.maxRetries = this.config.maxRetries;
         this.retryDelay = this.config.retryDelay;
-        this.needsSwitchingAfterRequest = false;
-
         this.timeouts = TIMEOUTS;
     }
 
-    get currentAuthIndex() {
-        return this.authSwitcher.currentAuthIndex;
+    get currentSessionId() {
+        return this.sessionState.currentSessionId;
     }
 
-    set currentAuthIndex(value) {
-        this.authSwitcher.currentAuthIndex = value;
-        this._syncCurrentSessionUsageCount();
-    }
-
-    get failureCount() {
-        return this.authSwitcher.failureCount;
-    }
-
-    set failureCount(value) {
-        this.authSwitcher.failureCount = value;
-    }
-
-    get usageCount() {
-        return this.authSwitcher.usageCount;
+    set currentSessionId(value) {
+        this.sessionState.currentSessionId = value;
     }
 
     get isSystemBusy() {
@@ -77,54 +53,17 @@ class RequestHandler {
         return this.connectionRegistry.pickConnection(this.config.sessionSelectionStrategy, excludedConnectionIds);
     }
 
-    _syncCurrentSessionUsageCount() {
-        if (!this.authSwitcher.currentAuthIndex) {
-            this.authSwitcher.usageCount = 0;
-            return;
-        }
-
-        const stats = this.connectionRegistry.getConnectionStats(this.authSwitcher.currentAuthIndex);
-        this.authSwitcher.usageCount = stats?.usageCount || 0;
-    }
-
-    _incrementSessionUsageCount(connectionId = this.currentAuthIndex) {
+    _incrementSessionUsageCount(connectionId = this.currentSessionId) {
         if (!connectionId) {
             return 0;
         }
 
-        const usageCount = this.connectionRegistry.recordConnectionUsage(connectionId);
-        if (connectionId === this.currentAuthIndex) {
-            this.authSwitcher.usageCount = usageCount;
-        }
-        return usageCount;
-    }
-
-    _peekNextSessionUsageCount(connectionId = this.currentAuthIndex) {
-        if (!connectionId) {
-            return 0;
-        }
-
-        const currentUsageCount = this.connectionRegistry.getConnectionStats(connectionId)?.usageCount || 0;
-        return currentUsageCount + 1;
-    }
-
-    _shouldSwitchByUsage(connectionId = this.currentAuthIndex) {
-        const usageCount = connectionId
-            ? (this.connectionRegistry.getConnectionStats(connectionId)?.usageCount ?? 0)
-            : 0;
-        if (connectionId === this.currentAuthIndex) {
-            this.authSwitcher.usageCount = usageCount;
-        }
-        return (
-            Number.isFinite(this.config.switchOnUses) &&
-            this.config.switchOnUses > 0 &&
-            usageCount >= this.config.switchOnUses
-        );
+        return this.connectionRegistry.recordConnectionUsage(connectionId);
     }
 
     async _switchToNextSession(excludedConnectionIds = new Set()) {
         const nextConnection = this.connectionRegistry.switchToNextConnection(
-            this.currentAuthIndex,
+            this.currentSessionId,
             this.config.sessionSelectionStrategy,
             excludedConnectionIds
         );
@@ -132,44 +71,12 @@ class RequestHandler {
             return false;
         }
 
-        const previousConnectionId = this.currentAuthIndex;
-        this.currentAuthIndex = nextConnection.connectionId;
+        const previousConnectionId = this.currentSessionId;
+        this.currentSessionId = nextConnection.connectionId;
         this.logger.info(
-            `[Session] Switched session from ${previousConnectionId || "(unassigned)"} to ${this.currentAuthIndex} via ${this.config.sessionSelectionStrategy}.`
+            `[Session] Switched session from ${previousConnectionId || "(unassigned)"} to ${this.currentSessionId} via ${this.config.sessionSelectionStrategy}.`
         );
         return true;
-    }
-
-    async _handleRequestFailureAndSwitch(errorDetails) {
-        const status = Number(errorDetails?.status);
-        this.authSwitcher.failureCount += 1;
-
-        const immediateSwitch = Number.isFinite(status) && this.config?.immediateSwitchStatusCodes?.includes(status);
-        const thresholdReached =
-            Number.isFinite(this.config.failureThreshold) &&
-            this.config.failureThreshold > 0 &&
-            this.authSwitcher.failureCount >= this.config.failureThreshold;
-
-        if (!immediateSwitch && !thresholdReached) {
-            this.logger.warn(
-                `[Session] Failure recorded on session ${this.currentAuthIndex || "(unassigned)"} (${this.authSwitcher.failureCount}/${this.config.failureThreshold || "disabled"}).`
-            );
-            return false;
-        }
-
-        const switched = await this._switchToNextSession();
-        if (switched) {
-            this.logger.warn(
-                `[Session] Switched away from failed session after status ${Number.isFinite(status) ? status : "unknown"}; failure counter reset.`
-            );
-            this.authSwitcher.failureCount = 0;
-        } else {
-            this.logger.warn(
-                "[Session] Failure-triggered switch requested, but no alternate browser session is available."
-            );
-        }
-
-        return switched;
     }
 
     async _waitForGraceReconnect(timeoutMs = 60000) {
@@ -230,7 +137,7 @@ class RequestHandler {
         }
 
         try {
-            const errorMessage = `Stream interrupted: ${error.reason === "page_closed" ? "Account context closed" : error.reason || "Connection lost"}`;
+            const errorMessage = `Stream interrupted: ${error.reason === "page_closed" ? "Session context closed" : error.reason || "Connection lost"}`;
 
             if (format === "claude") {
                 res.write(
@@ -408,7 +315,7 @@ class RequestHandler {
      * @returns {boolean} true if a usable session is available, false otherwise
      */
     async _handleBrowserRecovery(res) {
-        if (this.currentAuthIndex && this.connectionRegistry.getConnectionByAuth(this.currentAuthIndex)) {
+        if (this.currentSessionId && this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
             return true;
         }
 
@@ -421,7 +328,7 @@ class RequestHandler {
         const checkInterval = 200;
 
         while (Date.now() - startTime < timeoutMs) {
-            const connection = this.connectionRegistry.getConnectionByAuth(this.currentAuthIndex);
+            const connection = this.connectionRegistry.getConnectionBySession(this.currentSessionId);
             if (connection && connection.readyState === 1) {
                 return true;
             }
@@ -429,7 +336,7 @@ class RequestHandler {
         }
 
         this.logger.warn(
-            `[Request] Timeout waiting for WebSocket connection for browser session ${this.currentAuthIndex || "(unassigned)"}.`
+            `[Request] Timeout waiting for WebSocket connection for browser session ${this.currentSessionId || "(unassigned)"}.`
         );
         return false;
     }
@@ -463,15 +370,15 @@ class RequestHandler {
     }
 
     _createImmediateSwitchTracker() {
-        const attemptedAuthIndices = new Set();
-        if (this.currentAuthIndex) {
-            attemptedAuthIndices.add(this.currentAuthIndex);
+        const attemptedSessionIds = new Set();
+        if (this.currentSessionId) {
+            attemptedSessionIds.add(this.currentSessionId);
         }
-        return { attemptedAuthIndices };
+        return { attemptedSessionIds };
     }
 
     async _performImmediateSwitchRetry(errorDetails, requestId, tracker) {
-        const switched = await this.authSwitcher.switchToNextAuth(tracker.attemptedAuthIndices);
+        const switched = await this.sessionState.switchToNextSession(tracker.attemptedSessionIds);
         if (!switched) {
             this.logger.warn(
                 `[Request] Immediate switch for request #${requestId} did not find another available browser session.`
@@ -479,7 +386,7 @@ class RequestHandler {
             return false;
         }
 
-        tracker.attemptedAuthIndices.add(this.currentAuthIndex);
+        tracker.attemptedSessionIds.add(this.currentSessionId);
         return true;
     }
 
@@ -493,11 +400,11 @@ class RequestHandler {
             this._sendErrorResponse(res, 503, "No browser session is currently connected.");
             return;
         }
-        this.currentAuthIndex = selectedConnection.connectionId;
+        this.currentSessionId = selectedConnection.connectionId;
 
-        // Check current account's browser connection
-        if (!this.connectionRegistry.getConnectionByAuth(this.currentAuthIndex)) {
-            this.logger.warn(`[Request] No WebSocket connection for current account #${this.currentAuthIndex}`);
+        // Check current session's browser connection
+        if (!this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
+            this.logger.warn(`[Request] No WebSocket connection for session ${this.currentSessionId}`);
             const recovered = await this._handleBrowserRecovery(res);
             if (!recovered) return;
         }
@@ -507,31 +414,9 @@ class RequestHandler {
             const ready = await this._waitForSystemAndConnectionIfBusy(res);
             if (!ready) return;
         }
-        if (this.browserManager) {
-            this.browserManager.notifyUserActivity();
-        }
-        // Handle usage-based account switching
         const isGenerativeRequest =
             req.method === "POST" &&
             (req.path.includes("generateContent") || req.path.includes("streamGenerateContent"));
-
-        if (isGenerativeRequest) {
-            const usageCount = this._peekNextSessionUsageCount();
-            if (usageCount > 0) {
-                const rotationCountText =
-                    this.config.switchOnUses > 0 ? `${usageCount}/${this.config.switchOnUses}` : `${usageCount}`;
-                this.logger.info(
-                    `[Request] Generation request - account rotation count: ${rotationCountText} (Current account: ${this.currentAuthIndex})`
-                );
-                if (
-                    Number.isFinite(this.config.switchOnUses) &&
-                    this.config.switchOnUses > 0 &&
-                    usageCount >= this.config.switchOnUses
-                ) {
-                    this.needsSwitchingAfterRequest = true;
-                }
-            }
-        }
 
         const proxyRequest = this._buildProxyRequest(req, requestId);
         proxyRequest.is_generative = isGenerativeRequest;
@@ -541,10 +426,10 @@ class RequestHandler {
         res.__proxyResponseStreamMode = wantsStream ? proxyRequest.streaming_mode : null;
 
         try {
-            // Create message queue inside try-catch to handle invalid authIndex
+            // Create message queue inside try-catch to handle an invalid session selection
             const messageQueue = this.connectionRegistry.createMessageQueue(
                 requestId,
-                this.currentAuthIndex,
+                this.currentSessionId,
                 proxyRequest.request_attempt_id
             );
             this._setupClientDisconnectHandler(res, requestId);
@@ -569,15 +454,6 @@ class RequestHandler {
             this._handleRequestError(error, res, "gemini");
         } finally {
             this.connectionRegistry.removeMessageQueue(requestId, "request_complete");
-            if (this.needsSwitchingAfterRequest) {
-                this.logger.info(
-                    `[Auth] Rotation count reached switching threshold (${this.authSwitcher.usageCount}/${this.config.switchOnUses}), will automatically switch account in background...`
-                );
-                this.authSwitcher.switchToNextAuth().catch(err => {
-                    this.logger.error(`[Auth] Background account switching task failed: ${err.message}`);
-                });
-                this.needsSwitchingAfterRequest = false;
-            }
             if (!res.writableEnded) res.end();
         }
     }
@@ -592,11 +468,11 @@ class RequestHandler {
             this._sendErrorResponse(res, 503, "No browser session is currently connected.");
             return;
         }
-        this.currentAuthIndex = selectedConnection.connectionId;
+        this.currentSessionId = selectedConnection.connectionId;
 
-        // Check current account's browser connection
-        if (!this.connectionRegistry.getConnectionByAuth(this.currentAuthIndex)) {
-            this.logger.warn(`[Request] No WebSocket connection for current account #${this.currentAuthIndex}`);
+        // Check current session's browser connection
+        if (!this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
+            this.logger.warn(`[Request] No WebSocket connection for session ${this.currentSessionId}`);
             const recovered = await this._handleBrowserRecovery(res);
             if (!recovered) return;
         }
@@ -606,29 +482,8 @@ class RequestHandler {
             const ready = await this._waitForSystemAndConnectionIfBusy(res);
             if (!ready) return;
         }
-        if (this.browserManager) {
-            this.browserManager.notifyUserActivity();
-        }
-
         const isOpenAIStream = req.body.stream === true;
         const systemStreamMode = this.serverSystem.streamingMode;
-
-        // Handle usage counting
-        const usageCount = this._peekNextSessionUsageCount();
-        if (usageCount > 0) {
-            const rotationCountText =
-                this.config.switchOnUses > 0 ? `${usageCount}/${this.config.switchOnUses}` : `${usageCount}`;
-            this.logger.info(
-                `[Request] OpenAI generation request - account rotation count: ${rotationCountText} (Current account: ${this.currentAuthIndex})`
-            );
-            if (
-                Number.isFinite(this.config.switchOnUses) &&
-                this.config.switchOnUses > 0 &&
-                usageCount >= this.config.switchOnUses
-            ) {
-                this.needsSwitchingAfterRequest = true;
-            }
-        }
 
         // Translate OpenAI format to Google format (also handles model name suffix parsing)
         let googleBody, model, modelStreamingMode;
@@ -660,10 +515,10 @@ class RequestHandler {
         res.__proxyResponseStreamMode = isOpenAIStream ? (useRealStream ? "real" : "fake") : null;
 
         try {
-            // Create message queue inside try-catch to handle invalid authIndex
+            // Create message queue inside try-catch to handle an invalid session selection
             const messageQueue = this.connectionRegistry.createMessageQueue(
                 requestId,
-                this.currentAuthIndex,
+                this.currentSessionId,
                 proxyRequest.request_attempt_id
             );
             this._setupClientDisconnectHandler(res, requestId);
@@ -687,7 +542,7 @@ class RequestHandler {
                         this.config?.immediateSwitchStatusCodes?.includes(initialStatus)
                     ) {
                         this.logger.warn(
-                            `[Request] OpenAI real stream received ${initialStatus}, switching account and retrying...`
+                            `[Request] OpenAI real stream received ${initialStatus}, switching session and retrying...`
                         );
                         const switched = await this._performImmediateSwitchRetry(
                             initialMessage,
@@ -707,7 +562,7 @@ class RequestHandler {
                         this._advanceProxyRequestAttempt(proxyRequest);
                         currentQueue = this.connectionRegistry.createMessageQueue(
                             requestId,
-                            this.currentAuthIndex,
+                            this.currentSessionId,
                             proxyRequest.request_attempt_id
                         );
                         continue;
@@ -722,26 +577,16 @@ class RequestHandler {
                     // Send standard HTTP error response
                     this._sendErrorResponse(res, initialMessage.status || 500, initialMessage.message);
 
-                    // Avoid switching account if the error is just a connection reset
-                    if (!skipFinalFailureSwitch && !this._isConnectionResetError(initialMessage)) {
-                        await this.authSwitcher.handleRequestFailureAndSwitch(initialMessage, null);
-                    } else if (skipFinalFailureSwitch) {
+                    if (skipFinalFailureSwitch) {
                         this.logger.info(
-                            "[Request] Immediate-switch retries exhausted, skipping additional account switch."
+                            "[Request] Immediate-switch retries exhausted, skipping additional session switch."
                         );
-                    } else {
+                    } else if (this._isConnectionResetError(initialMessage)) {
                         this.logger.info(
-                            "[Request] Failure due to connection reset (Real Stream), skipping account switch."
+                            "[Request] Failure due to connection reset (Real Stream), skipping session switch."
                         );
                     }
                     return;
-                }
-
-                if (this.authSwitcher.failureCount > 0) {
-                    this.logger.debug(
-                        `✅ [Auth] OpenAI interface request successful - failure count reset from ${this.authSwitcher.failureCount} to 0`
-                    );
-                    this.authSwitcher.failureCount = 0;
                 }
 
                 res.status(200).set({
@@ -789,24 +634,16 @@ class RequestHandler {
                             this._sendErrorResponse(res, result.error.status || 500, result.error.message);
                         }
 
-                        // Avoid switching account if the error is just a connection reset
-                        if (!result.error.skipAccountSwitch && !this._isConnectionResetError(result.error)) {
-                            await this.authSwitcher.handleRequestFailureAndSwitch(result.error, null);
-                        } else if (result.error.skipAccountSwitch) {
+                        if (result.error.skipSessionSwitch) {
                             this.logger.info(
-                                "[Request] Immediate-switch retries exhausted, skipping additional account switch."
+                                "[Request] Immediate-switch retries exhausted, skipping additional session switch."
                             );
-                        } else {
+                        } else if (this._isConnectionResetError(result.error)) {
                             this.logger.info(
-                                "[Request] Failure due to connection reset (OpenAI), skipping account switch."
+                                "[Request] Failure due to connection reset (OpenAI), skipping session switch."
                             );
                         }
                         return;
-                    }
-
-                    if (this.authSwitcher.failureCount > 0) {
-                        this.logger.debug(`✅ [Auth] OpenAI interface request successful - failure count reset to 0`);
-                        this.authSwitcher.failureCount = 0;
                     }
 
                     // Use the queue that successfully received the initial message
@@ -903,15 +740,6 @@ class RequestHandler {
             this._handleRequestError(error, res);
         } finally {
             this.connectionRegistry.removeMessageQueue(requestId, "request_complete");
-            if (this.needsSwitchingAfterRequest) {
-                this.logger.info(
-                    `[Auth] Rotation count reached switching threshold (${this.authSwitcher.usageCount}/${this.config.switchOnUses}), will automatically switch account in background...`
-                );
-                this.authSwitcher.switchToNextAuth().catch(err => {
-                    this.logger.error(`[Auth] Background account switching task failed: ${err.message}`);
-                });
-                this.needsSwitchingAfterRequest = false;
-            }
             if (!res.writableEnded) res.end();
         }
     }
@@ -926,11 +754,11 @@ class RequestHandler {
             this._sendErrorResponse(res, 503, "No browser session is currently connected.");
             return;
         }
-        this.currentAuthIndex = selectedConnection.connectionId;
+        this.currentSessionId = selectedConnection.connectionId;
 
-        // Check current account's browser connection
-        if (!this.connectionRegistry.getConnectionByAuth(this.currentAuthIndex)) {
-            this.logger.warn(`[Request] No WebSocket connection for current account #${this.currentAuthIndex}`);
+        // Check current session's browser connection
+        if (!this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
+            this.logger.warn(`[Request] No WebSocket connection for session ${this.currentSessionId}`);
             const recovered = await this._handleBrowserRecovery(res);
             if (!recovered) return;
         }
@@ -940,10 +768,6 @@ class RequestHandler {
             const ready = await this._waitForSystemAndConnectionIfBusy(res);
             if (!ready) return;
         }
-        if (this.browserManager) {
-            this.browserManager.notifyUserActivity();
-        }
-
         const isOpenAIStream = req.body.stream === true;
         const normalizeInstructions = value => {
             if (typeof value === "string") return value;
@@ -997,22 +821,6 @@ class RequestHandler {
         const systemStreamMode = this.serverSystem.streamingMode;
 
         // Handle usage counting
-        const usageCount = this._peekNextSessionUsageCount();
-        if (usageCount > 0) {
-            const rotationCountText =
-                this.config.switchOnUses > 0 ? `${usageCount}/${this.config.switchOnUses}` : `${usageCount}`;
-            this.logger.info(
-                `[Request] OpenAI Response generation request - account rotation count: ${rotationCountText} (Current account: ${this.currentAuthIndex})`
-            );
-            if (
-                Number.isFinite(this.config.switchOnUses) &&
-                this.config.switchOnUses > 0 &&
-                usageCount >= this.config.switchOnUses
-            ) {
-                this.needsSwitchingAfterRequest = true;
-            }
-        }
-
         // Translate OpenAI Response format to Google format
         let googleBody, model, modelStreamingMode;
         try {
@@ -1043,10 +851,10 @@ class RequestHandler {
         res.__proxyResponseStreamMode = isOpenAIStream ? (useRealStream ? "real" : "fake") : null;
 
         try {
-            // Create message queue inside try-catch to handle invalid authIndex
+            // Create message queue inside try-catch to handle an invalid session selection
             const messageQueue = this.connectionRegistry.createMessageQueue(
                 requestId,
-                this.currentAuthIndex,
+                this.currentSessionId,
                 proxyRequest.request_attempt_id
             );
             this._setupClientDisconnectHandler(res, requestId);
@@ -1070,7 +878,7 @@ class RequestHandler {
                         this.config?.immediateSwitchStatusCodes?.includes(initialStatus)
                     ) {
                         this.logger.warn(
-                            `[Request] OpenAI Response API real stream received ${initialStatus}, switching account and retrying...`
+                            `[Request] OpenAI Response API real stream received ${initialStatus}, switching session and retrying...`
                         );
                         const switched = await this._performImmediateSwitchRetry(
                             initialMessage,
@@ -1090,7 +898,7 @@ class RequestHandler {
                         this._advanceProxyRequestAttempt(proxyRequest);
                         currentQueue = this.connectionRegistry.createMessageQueue(
                             requestId,
-                            this.currentAuthIndex,
+                            this.currentSessionId,
                             proxyRequest.request_attempt_id
                         );
                         continue;
@@ -1105,26 +913,16 @@ class RequestHandler {
                     // Send standard HTTP error response
                     this._sendErrorResponse(res, initialMessage.status || 500, initialMessage.message);
 
-                    // Avoid switching account if the error is just a connection reset
-                    if (!skipFinalFailureSwitch && !this._isConnectionResetError(initialMessage)) {
-                        await this.authSwitcher.handleRequestFailureAndSwitch(initialMessage, null);
-                    } else if (skipFinalFailureSwitch) {
+                    if (skipFinalFailureSwitch) {
                         this.logger.info(
-                            "[Request] Immediate-switch retries exhausted, skipping additional account switch."
+                            "[Request] Immediate-switch retries exhausted, skipping additional session switch."
                         );
-                    } else {
+                    } else if (this._isConnectionResetError(initialMessage)) {
                         this.logger.info(
-                            "[Request] Failure due to connection reset (Real Stream), skipping account switch."
+                            "[Request] Failure due to connection reset (Real Stream), skipping session switch."
                         );
                     }
                     return;
-                }
-
-                if (this.authSwitcher.failureCount > 0) {
-                    this.logger.debug(
-                        `✅ [Auth] OpenAI Response API request successful - failure count reset from ${this.authSwitcher.failureCount} to 0`
-                    );
-                    this.authSwitcher.failureCount = 0;
                 }
 
                 res.status(200).set({
@@ -1174,26 +972,16 @@ class RequestHandler {
                             this._sendErrorResponse(res, result.error.status || 500, result.error.message);
                         }
 
-                        // Avoid switching account if the error is just a connection reset
-                        if (!result.error.skipAccountSwitch && !this._isConnectionResetError(result.error)) {
-                            await this.authSwitcher.handleRequestFailureAndSwitch(result.error, null);
-                        } else if (result.error.skipAccountSwitch) {
+                        if (result.error.skipSessionSwitch) {
                             this.logger.info(
-                                "[Request] Immediate-switch retries exhausted, skipping additional account switch."
+                                "[Request] Immediate-switch retries exhausted, skipping additional session switch."
                             );
-                        } else {
+                        } else if (this._isConnectionResetError(result.error)) {
                             this.logger.info(
-                                "[Request] Failure due to connection reset (Response API), skipping account switch."
+                                "[Request] Failure due to connection reset (Response API), skipping session switch."
                             );
                         }
                         return;
-                    }
-
-                    if (this.authSwitcher.failureCount > 0) {
-                        this.logger.debug(
-                            `✅ [Auth] OpenAI Response API request successful - failure count reset to 0`
-                        );
-                        this.authSwitcher.failureCount = 0;
                     }
 
                     // Use the queue that successfully received the initial message
@@ -1300,15 +1088,6 @@ class RequestHandler {
             this._handleRequestError(error, res, "response_api");
         } finally {
             this.connectionRegistry.removeMessageQueue(requestId, "request_complete");
-            if (this.needsSwitchingAfterRequest) {
-                this.logger.info(
-                    `[Auth] Rotation count reached switching threshold (${this.authSwitcher.usageCount}/${this.config.switchOnUses}), will automatically switch account in background...`
-                );
-                this.authSwitcher.switchToNextAuth().catch(err => {
-                    this.logger.error(`[Auth] Background account switching task failed: ${err.message}`);
-                });
-                this.needsSwitchingAfterRequest = false;
-            }
             if (!res.writableEnded) res.end();
         }
     }
@@ -1323,11 +1102,11 @@ class RequestHandler {
             this._sendClaudeErrorResponse(res, 503, "overloaded_error", "No browser session is currently connected.");
             return;
         }
-        this.currentAuthIndex = selectedConnection.connectionId;
+        this.currentSessionId = selectedConnection.connectionId;
 
-        // Check current account's browser connection
-        if (!this.connectionRegistry.getConnectionByAuth(this.currentAuthIndex)) {
-            this.logger.warn(`[Request] No WebSocket connection for current account #${this.currentAuthIndex}`);
+        // Check current session's browser connection
+        if (!this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
+            this.logger.warn(`[Request] No WebSocket connection for session ${this.currentSessionId}`);
             const recovered = await this._handleBrowserRecovery(res);
             if (!recovered) return;
         }
@@ -1340,29 +1119,8 @@ class RequestHandler {
             if (!ready) return;
         }
 
-        if (this.browserManager) {
-            this.browserManager.notifyUserActivity();
-        }
-
         const isClaudeStream = req.body.stream === true;
         const systemStreamMode = this.serverSystem.streamingMode;
-
-        // Handle usage counting
-        const usageCount = this._peekNextSessionUsageCount();
-        if (usageCount > 0) {
-            const rotationCountText =
-                this.config.switchOnUses > 0 ? `${usageCount}/${this.config.switchOnUses}` : `${usageCount}`;
-            this.logger.info(
-                `[Request] Claude generation request - account rotation count: ${rotationCountText} (Current account: ${this.currentAuthIndex})`
-            );
-            if (
-                Number.isFinite(this.config.switchOnUses) &&
-                this.config.switchOnUses > 0 &&
-                usageCount >= this.config.switchOnUses
-            ) {
-                this.needsSwitchingAfterRequest = true;
-            }
-        }
 
         // Translate Claude format to Google format
         let googleBody, model, modelStreamingMode;
@@ -1394,10 +1152,10 @@ class RequestHandler {
         res.__proxyResponseStreamMode = isClaudeStream ? (useRealStream ? "real" : "fake") : null;
 
         try {
-            // Create message queue inside try-catch to handle invalid authIndex
+            // Create message queue inside try-catch to handle an invalid session selection
             const messageQueue = this.connectionRegistry.createMessageQueue(
                 requestId,
-                this.currentAuthIndex,
+                this.currentSessionId,
                 proxyRequest.request_attempt_id
             );
             this._setupClientDisconnectHandler(res, requestId);
@@ -1421,7 +1179,7 @@ class RequestHandler {
                         this.config?.immediateSwitchStatusCodes?.includes(initialStatus)
                     ) {
                         this.logger.warn(
-                            `[Request] Claude real stream received ${initialStatus}, switching account and retrying...`
+                            `[Request] Claude real stream received ${initialStatus}, switching session and retrying...`
                         );
                         const switched = await this._performImmediateSwitchRetry(
                             initialMessage,
@@ -1441,7 +1199,7 @@ class RequestHandler {
                         this._advanceProxyRequestAttempt(proxyRequest);
                         currentQueue = this.connectionRegistry.createMessageQueue(
                             requestId,
-                            this.currentAuthIndex,
+                            this.currentSessionId,
                             proxyRequest.request_attempt_id
                         );
                         continue;
@@ -1458,19 +1216,12 @@ class RequestHandler {
                         "api_error",
                         initialMessage.message
                     );
-                    if (!skipFinalFailureSwitch && !this._isConnectionResetError(initialMessage)) {
-                        await this.authSwitcher.handleRequestFailureAndSwitch(initialMessage, null);
-                    } else if (skipFinalFailureSwitch) {
+                    if (skipFinalFailureSwitch) {
                         this.logger.info(
-                            "[Request] Immediate-switch retries exhausted, skipping additional account switch."
+                            "[Request] Immediate-switch retries exhausted, skipping additional session switch."
                         );
                     }
                     return;
-                }
-
-                if (this.authSwitcher.failureCount > 0) {
-                    this.logger.debug(`✅ [Auth] Claude request successful - failure count reset to 0`);
-                    this.authSwitcher.failureCount = 0;
                 }
 
                 res.status(200).set({
@@ -1520,19 +1271,12 @@ class RequestHandler {
                                 result.error.message
                             );
                         }
-                        if (!result.error.skipAccountSwitch && !this._isConnectionResetError(result.error)) {
-                            await this.authSwitcher.handleRequestFailureAndSwitch(result.error, null);
-                        } else if (result.error.skipAccountSwitch) {
+                        if (result.error.skipSessionSwitch) {
                             this.logger.info(
-                                "[Request] Immediate-switch retries exhausted, skipping additional account switch."
+                                "[Request] Immediate-switch retries exhausted, skipping additional session switch."
                             );
                         }
                         return;
-                    }
-
-                    if (this.authSwitcher.failureCount > 0) {
-                        this.logger.debug(`✅ [Auth] Claude request successful - failure count reset to 0`);
-                        this.authSwitcher.failureCount = 0;
                     }
 
                     // Use the queue that successfully received the initial message
@@ -1633,15 +1377,6 @@ class RequestHandler {
             this._handleClaudeRequestError(error, res);
         } finally {
             this.connectionRegistry.removeMessageQueue(requestId, "request_complete");
-            if (this.needsSwitchingAfterRequest) {
-                this.logger.info(
-                    `[Auth] Rotation count reached switching threshold (${this.authSwitcher.usageCount}/${this.config.switchOnUses}), will automatically switch account in background...`
-                );
-                this.authSwitcher.switchToNextAuth().catch(err => {
-                    this.logger.error(`[Auth] Background account switching task failed: ${err.message}`);
-                });
-                this.needsSwitchingAfterRequest = false;
-            }
             if (!res.writableEnded) res.end();
         }
     }
@@ -1655,11 +1390,11 @@ class RequestHandler {
             this._sendClaudeErrorResponse(res, 503, "overloaded_error", "No browser session is currently connected.");
             return;
         }
-        this.currentAuthIndex = selectedConnection.connectionId;
+        this.currentSessionId = selectedConnection.connectionId;
 
-        // Check current account's browser connection
-        if (!this.connectionRegistry.getConnectionByAuth(this.currentAuthIndex)) {
-            this.logger.warn(`[Request] No WebSocket connection for current account #${this.currentAuthIndex}`);
+        // Check current session's browser connection
+        if (!this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
+            this.logger.warn(`[Request] No WebSocket connection for session ${this.currentSessionId}`);
             const recovered = await this._handleBrowserRecovery(res);
             if (!recovered) return;
         }
@@ -1670,10 +1405,6 @@ class RequestHandler {
                 sendError: (status, message) => this._sendClaudeErrorResponse(res, status, "overloaded_error", message),
             });
             if (!ready) return;
-        }
-
-        if (this.browserManager) {
-            this.browserManager.notifyUserActivity();
         }
 
         // Translate Claude format to Google format
@@ -1710,10 +1441,10 @@ class RequestHandler {
         this._initializeProxyRequestAttempt(proxyRequest);
 
         try {
-            // Create message queue inside try-catch to handle invalid authIndex
+            // Create message queue inside try-catch to handle an invalid session selection
             const messageQueue = this.connectionRegistry.createMessageQueue(
                 requestId,
-                this.currentAuthIndex,
+                this.currentSessionId,
                 proxyRequest.request_attempt_id
             );
             this._setupClientDisconnectHandler(res, requestId);
@@ -1723,12 +1454,9 @@ class RequestHandler {
 
             if (response.event_type === "error") {
                 this.logger.error(
-                    `[Request] Received error from browser, will trigger switching logic. Status code: ${response.status}, message: ${response.message}`
+                    `[Request] Received error from browser session. Status code: ${response.status}, message: ${response.message}`
                 );
                 this._sendClaudeErrorResponse(res, response.status || 500, "api_error", response.message);
-                if (!this._isConnectionResetError(response)) {
-                    await this.authSwitcher.handleRequestFailureAndSwitch(response, null);
-                }
                 return;
             }
 
@@ -1754,14 +1482,6 @@ class RequestHandler {
             const geminiResponse = JSON.parse(fullBody || response.body);
             const totalTokens = geminiResponse.totalTokens || 0;
 
-            // Reset failure count on success
-            if (this.authSwitcher.failureCount > 0) {
-                this.logger.debug(
-                    `✅ [Auth] Count tokens request successful - failure count reset from ${this.authSwitcher.failureCount} to 0`
-                );
-                this.authSwitcher.failureCount = 0;
-            }
-
             // Return Claude-compatible response
             res.status(200).json({
                 input_tokens: totalTokens,
@@ -1786,11 +1506,11 @@ class RequestHandler {
             this._sendErrorResponse(res, 503, "No browser session is currently connected.");
             return;
         }
-        this.currentAuthIndex = selectedConnection.connectionId;
+        this.currentSessionId = selectedConnection.connectionId;
 
-        // Check current account's browser connection
-        if (!this.connectionRegistry.getConnectionByAuth(this.currentAuthIndex)) {
-            this.logger.warn(`[Request] No WebSocket connection for current account #${this.currentAuthIndex}`);
+        // Check current session's browser connection
+        if (!this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
+            this.logger.warn(`[Request] No WebSocket connection for session ${this.currentSessionId}`);
             const recovered = await this._handleBrowserRecovery(res);
             if (!recovered) return;
         }
@@ -1799,10 +1519,6 @@ class RequestHandler {
         {
             const ready = await this._waitForSystemAndConnectionIfBusy(res);
             if (!ready) return;
-        }
-
-        if (this.browserManager) {
-            this.browserManager.notifyUserActivity();
         }
 
         // Translate OpenAI Response format to Google format (so we can use Gemini countTokens)
@@ -1840,7 +1556,7 @@ class RequestHandler {
         try {
             const messageQueue = this.connectionRegistry.createMessageQueue(
                 requestId,
-                this.currentAuthIndex,
+                this.currentSessionId,
                 proxyRequest.request_attempt_id
             );
             this._setupClientDisconnectHandler(res, requestId);
@@ -1850,17 +1566,14 @@ class RequestHandler {
 
             if (response.event_type === "error") {
                 this.logger.error(
-                    `[Request] Received error from browser for input_tokens, will trigger switching logic. Status code: ${response.status}, message: ${response.message}`
+                    `[Request] Received error from browser session for input_tokens. Status code: ${response.status}, message: ${response.message}`
                 );
 
                 this._sendErrorResponse(res, response.status || 500, response.message);
 
-                // Avoid switching account if the error is just a connection reset
-                if (!this._isConnectionResetError(response)) {
-                    await this.authSwitcher.handleRequestFailureAndSwitch(response, null);
-                } else {
+                if (this._isConnectionResetError(response)) {
                     this.logger.info(
-                        "[Request] Failure due to connection reset (input_tokens), skipping account switch."
+                        "[Request] Failure due to connection reset (input_tokens), skipping session switch."
                     );
                 }
                 return;
@@ -1896,14 +1609,6 @@ class RequestHandler {
             }
 
             const totalTokens = geminiResponse.totalTokens || 0;
-
-            // Reset failure count on success
-            if (this.authSwitcher.failureCount > 0) {
-                this.logger.debug(
-                    `✅ [Auth] input_tokens request successful - failure count reset from ${this.authSwitcher.failureCount} to 0`
-                );
-                this.authSwitcher.failureCount = 0;
-            }
 
             res.status(200).json({
                 input_tokens: totalTokens,
@@ -2165,27 +1870,17 @@ class RequestHandler {
                         this._sendErrorResponse(res, result.error.status || 500, result.error.message);
                     }
 
-                    // Avoid switching account if the error is just a connection reset
-                    if (!result.error.skipAccountSwitch && !this._isConnectionResetError(result.error)) {
-                        await this.authSwitcher.handleRequestFailureAndSwitch(result.error, null);
-                    } else if (result.error.skipAccountSwitch) {
+                    if (result.error.skipSessionSwitch) {
                         this.logger.info(
-                            "[Request] Immediate-switch retries exhausted, skipping additional account switch."
+                            "[Request] Immediate-switch retries exhausted, skipping additional session switch."
                         );
-                    } else {
+                    } else if (this._isConnectionResetError(result.error)) {
                         this.logger.info(
-                            "[Request] Failure due to connection reset (Gemini Non-Stream), skipping account switch."
+                            "[Request] Failure due to connection reset (Gemini Non-Stream), skipping session switch."
                         );
                     }
                 }
                 return;
-            }
-
-            if (proxyRequest.is_generative && this.authSwitcher.failureCount > 0) {
-                this.logger.debug(
-                    `✅ [Auth] Generation request successful - failure count reset from ${this.authSwitcher.failureCount} to 0`
-                );
-                this.authSwitcher.failureCount = 0;
             }
 
             // Use the queue that successfully received the initial message
@@ -2425,7 +2120,7 @@ class RequestHandler {
                 this.config?.immediateSwitchStatusCodes?.includes(headerStatus)
             ) {
                 this.logger.warn(
-                    `[Request] Gemini real stream received ${headerStatus}, switching account and retrying...`
+                    `[Request] Gemini real stream received ${headerStatus}, switching session and retrying...`
                 );
                 const switched = await this._performImmediateSwitchRetry(
                     headerMessage,
@@ -2446,7 +2141,7 @@ class RequestHandler {
                 this._advanceProxyRequestAttempt(proxyRequest);
                 currentQueue = this.connectionRegistry.createMessageQueue(
                     proxyRequest.request_id,
-                    this.currentAuthIndex,
+                    this.currentSessionId,
                     proxyRequest.request_attempt_id
                 );
                 continue;
@@ -2462,29 +2157,19 @@ class RequestHandler {
                 );
             } else {
                 this._logFinalRequestFailure(headerMessage, "Gemini real stream");
-                // Avoid switching account if the error is just a connection reset
-                if (!skipFinalFailureSwitch && !this._isConnectionResetError(headerMessage)) {
-                    await this.authSwitcher.handleRequestFailureAndSwitch(headerMessage, null);
-                } else if (skipFinalFailureSwitch) {
+                if (skipFinalFailureSwitch) {
                     this.logger.info(
-                        "[Request] Immediate-switch retries exhausted, skipping additional account switch."
+                        "[Request] Immediate-switch retries exhausted, skipping additional session switch."
                     );
-                } else {
+                } else if (this._isConnectionResetError(headerMessage)) {
                     this.logger.info(
-                        "[Request] Failure due to connection reset (Gemini Real Stream), skipping account switch."
+                        "[Request] Failure due to connection reset (Gemini Real Stream), skipping session switch."
                     );
                 }
                 return this._sendErrorResponse(res, headerMessage.status, headerMessage.message);
             }
             if (!res.writableEnded) res.end();
             return;
-        }
-
-        if (proxyRequest.is_generative && this.authSwitcher.failureCount > 0) {
-            this.logger.debug(
-                `✅ [Auth] Generation request successful - failure count reset from ${this.authSwitcher.failureCount} to 0`
-            );
-            this.authSwitcher.failureCount = 0;
         }
 
         this._setResponseHeaders(res, headerMessage, req);
@@ -2554,7 +2239,7 @@ class RequestHandler {
                 // Ignore JSON parsing errors for finish reason
             }
         } catch (error) {
-            // Handle queue closed errors (account switch, context closed, etc.)
+            // Handle queue closed errors (session switch, context closed, etc.)
             if (this._isConnectionResetError(error)) {
                 this._handleRealStreamQueueClosedError(error, res, "gemini");
             } else if (error instanceof QueueTimeoutError || error.code === "QUEUE_TIMEOUT") {
@@ -2579,33 +2264,22 @@ class RequestHandler {
             const result = await this._executeRequestWithRetries(proxyRequest, messageQueue);
 
             if (!result.success) {
-                // If retries failed, handle the failure (e.g., switch account)
+                // If retries failed, return the last browser-side error
                 if (isUserAbortedError(result.error)) {
                     this.logger.info(`[Request] Request #${proxyRequest.request_id} was properly cancelled by user.`);
                 } else {
                     this._logFinalRequestFailure(result.error, "Gemini non-stream");
-                    // Avoid switching account if the error is just a connection reset
-                    if (!result.error.skipAccountSwitch && !this._isConnectionResetError(result.error)) {
-                        await this.authSwitcher.handleRequestFailureAndSwitch(result.error, null);
-                    } else if (result.error.skipAccountSwitch) {
+                    if (result.error.skipSessionSwitch) {
                         this.logger.info(
-                            "[Request] Immediate-switch retries exhausted, skipping additional account switch."
+                            "[Request] Immediate-switch retries exhausted, skipping additional session switch."
                         );
-                    } else {
+                    } else if (this._isConnectionResetError(result.error)) {
                         this.logger.info(
-                            "[Request] Failure due to connection reset (Gemini Non-Stream), skipping account switch."
+                            "[Request] Failure due to connection reset (Gemini Non-Stream), skipping session switch."
                         );
                     }
                 }
                 return this._sendErrorResponse(res, result.error.status || 500, result.error.message);
-            }
-
-            // On success, reset failure count if needed
-            if (proxyRequest.is_generative && this.authSwitcher.failureCount > 0) {
-                this.logger.debug(
-                    `✅ [Auth] Non-stream generation request successful - failure count reset from ${this.authSwitcher.failureCount} to 0`
-                );
-                this.authSwitcher.failureCount = 0;
             }
 
             // Use the queue that successfully received the initial message
@@ -2700,8 +2374,8 @@ class RequestHandler {
     async _executeRequestWithRetries(proxyRequest, messageQueue) {
         let lastError = null;
         let currentQueue = messageQueue;
-        // Track the authIndex for the current queue to ensure proper cleanup
-        let currentQueueAuthIndex = this.currentAuthIndex;
+        // Track the session id for the current queue to ensure proper cleanup
+        let currentQueueSessionId = this.currentSessionId;
         let retryAttempt = 1;
         const immediateSwitchTracker = this._createImmediateSwitchTracker();
 
@@ -2772,7 +2446,7 @@ class RequestHandler {
                     this.config?.immediateSwitchStatusCodes?.includes(errorStatus) &&
                     !isUserAbortedError(errorPayload)
                 ) {
-                    this.logger.warn(`[Request] Received ${errorStatus}, switching account and retrying...`);
+                    this.logger.warn(`[Request] Received ${errorStatus}, switching session and retrying...`);
                     try {
                         const switched = await this._performImmediateSwitchRetry(
                             errorPayload,
@@ -2780,13 +2454,13 @@ class RequestHandler {
                             immediateSwitchTracker
                         );
                         if (!switched) {
-                            lastError = { ...errorPayload, skipAccountSwitch: true };
+                            lastError = { ...errorPayload, skipSessionSwitch: true };
                             break;
                         }
                     } catch (switchError) {
-                        lastError = { ...errorPayload, skipAccountSwitch: true };
+                        lastError = { ...errorPayload, skipSessionSwitch: true };
                         this.logger.error(
-                            `[Request] Account switch failed during immediate-switch retry flow: ${switchError.message}`
+                            `[Request] Session switch failed during immediate-switch retry flow: ${switchError.message}`
                         );
                         break;
                     }
@@ -2797,15 +2471,15 @@ class RequestHandler {
                     }
 
                     this.logger.debug(
-                        `[Request] Creating new message queue after immediate switch for request #${proxyRequest.request_id} (switching from account #${currentQueueAuthIndex} to #${this.currentAuthIndex})`
+                        `[Request] Creating new message queue after immediate switch for request #${proxyRequest.request_id} (switching from session ${currentQueueSessionId} to ${this.currentSessionId})`
                     );
                     this._advanceProxyRequestAttempt(proxyRequest);
                     currentQueue = this.connectionRegistry.createMessageQueue(
                         proxyRequest.request_id,
-                        this.currentAuthIndex,
+                        this.currentSessionId,
                         proxyRequest.request_attempt_id
                     );
-                    currentQueueAuthIndex = this.currentAuthIndex;
+                    currentQueueSessionId = this.currentSessionId;
                     continue;
                 }
 
@@ -2822,37 +2496,37 @@ class RequestHandler {
                     break;
                 }
 
-                // Cancel browser request on the ORIGINAL account that owns this queue.
+                // Cancel browser request on the original session that owns this queue.
                 // request_attempt_id isolates retries so a delayed cancel cannot abort a newer attempt.
-                // If account has switched, currentAuthIndex may differ from currentQueueAuthIndex.
+                // If the session has switched, currentSessionId may differ from currentQueueSessionId.
                 this._cancelBrowserRequest(
                     proxyRequest.request_id,
-                    currentQueueAuthIndex,
+                    currentQueueSessionId,
                     proxyRequest.request_attempt_id
                 );
 
                 // Explicitly close the old queue before creating a new one
-                // This ensures waitingResolvers are properly rejected even if authIndex changed
+                // This ensures waitingResolvers are properly rejected even if the session changes
                 try {
                     currentQueue.close("retry_creating_new_queue");
                 } catch (e) {
                     this.logger.debug(`[Request] Failed to close old queue before retry: ${e.message}`);
                 }
 
-                // Create a new message queue for the retry with CURRENT account
+                // Create a new message queue for the retry with the current session
                 // Note: We keep the same requestId so the browser response routes to the new queue
                 // createMessageQueue will automatically close and remove any existing queue with the same ID from the registry
                 this.logger.debug(
-                    `[Request] Creating new message queue for retry #${retryAttempt + 1} for request #${proxyRequest.request_id} (switching from account #${currentQueueAuthIndex} to #${this.currentAuthIndex})`
+                    `[Request] Creating new message queue for retry #${retryAttempt + 1} for request #${proxyRequest.request_id} (switching from session ${currentQueueSessionId} to ${this.currentSessionId})`
                 );
                 this._advanceProxyRequestAttempt(proxyRequest);
                 currentQueue = this.connectionRegistry.createMessageQueue(
                     proxyRequest.request_id,
-                    this.currentAuthIndex,
+                    this.currentSessionId,
                     proxyRequest.request_attempt_id
                 );
-                // Update tracked authIndex for the new queue
-                currentQueueAuthIndex = this.currentAuthIndex;
+                // Update tracked session id for the new queue
+                currentQueueSessionId = this.currentSessionId;
 
                 // Wait before the next retry
                 await new Promise(resolve => setTimeout(resolve, this.retryDelay));
@@ -3311,25 +2985,25 @@ class RequestHandler {
             if (!res.writableEnded) {
                 this.logger.warn(`[Request] Client closed request #${requestId} connection prematurely.`);
 
-                // Dynamically look up the current authIndex from the connection registry
-                // This ensures we cancel on the correct account even after retries switch accounts
-                const targetAuthIndex =
-                    this.connectionRegistry.getAuthIndexForRequest(requestId) ?? this.currentAuthIndex;
+                // Dynamically look up the current session id from the connection registry
+                // This ensures we cancel on the correct session even after retries switch sessions
+                const targetSessionId =
+                    this.connectionRegistry.getSessionIdForRequest(requestId) ?? this.currentSessionId;
                 const requestAttemptId = this.connectionRegistry.getRequestAttemptIdForRequest(requestId);
 
-                this._cancelBrowserRequest(requestId, targetAuthIndex, requestAttemptId);
+                this._cancelBrowserRequest(requestId, targetSessionId, requestAttemptId);
                 // Close and remove the message queue to unblock any waiting dequeue() calls
                 this.connectionRegistry.removeMessageQueue(requestId, "client_disconnect");
             }
         });
     }
 
-    _cancelBrowserRequest(requestId, authIndex, requestAttemptId = null) {
-        const targetAuthIndex = authIndex !== undefined ? authIndex : this.currentAuthIndex;
-        const connection = this.connectionRegistry.getConnectionByAuth(targetAuthIndex);
+    _cancelBrowserRequest(requestId, sessionId, requestAttemptId = null) {
+        const targetSessionId = sessionId !== undefined ? sessionId : this.currentSessionId;
+        const connection = this.connectionRegistry.getConnectionBySession(targetSessionId);
         if (connection) {
             this.logger.info(
-                `[Request] Cancelling request #${requestId} on account #${targetAuthIndex}` +
+                `[Request] Cancelling request #${requestId} on session ${targetSessionId}` +
                     (requestAttemptId ? ` (attempt ${requestAttemptId})` : "")
             );
             connection.send(
@@ -3341,7 +3015,7 @@ class RequestHandler {
             );
         } else {
             this.logger.warn(
-                `[Request] Unable to send cancel instruction: No available WebSocket connection for account #${targetAuthIndex}.`
+                `[Request] Unable to send cancel instruction: No available WebSocket connection for session ${targetSessionId}.`
             );
         }
     }
@@ -3353,17 +3027,17 @@ class RequestHandler {
      */
     _handleQueueTimeout(error, requestId) {
         if (error.code === "QUEUE_TIMEOUT" || error instanceof QueueTimeoutError) {
-            // Get the authIndex for this request from the registry
-            const authIndex = this.connectionRegistry.getAuthIndexForRequest(requestId);
+            // Get the session id for this request from the registry
+            const sessionId = this.connectionRegistry.getSessionIdForRequest(requestId);
             const requestAttemptId = this.connectionRegistry.getRequestAttemptIdForRequest(requestId);
-            if (authIndex !== null) {
+            if (sessionId !== null) {
                 this.logger.debug(
-                    `[Request] Queue timeout for request #${requestId}, notifying browser on account #${authIndex} to cancel`
+                    `[Request] Queue timeout for request #${requestId}, notifying browser on session ${sessionId} to cancel`
                 );
-                this._cancelBrowserRequest(requestId, authIndex, requestAttemptId);
+                this._cancelBrowserRequest(requestId, sessionId, requestAttemptId);
             } else {
                 this.logger.debug(
-                    `[Request] Queue timeout for request #${requestId}, but queue already removed (authIndex not found)`
+                    `[Request] Queue timeout for request #${requestId}, but queue already removed (session id not found)`
                 );
             }
         }
@@ -3591,11 +3265,11 @@ class RequestHandler {
     }
 
     _forwardRequest(proxyRequest) {
-        const connection = this.connectionRegistry.getConnectionByAuth(this.currentAuthIndex);
+        const connection = this.connectionRegistry.getConnectionBySession(this.currentSessionId);
         if (connection) {
-            const usageCount = this.authSwitcher.incrementUsageCount(this.currentAuthIndex);
+            const usageCount = this._incrementSessionUsageCount(this.currentSessionId);
             this.logger.debug(
-                `[Request] Forwarding request #${proxyRequest.request_id} via connection for authIndex=${this.currentAuthIndex}` +
+                `[Request] Forwarding request #${proxyRequest.request_id} via session ${this.currentSessionId}` +
                     ` (attempt=${proxyRequest.request_attempt_id}, usage=${usageCount})`
             );
             connection.send(
@@ -3606,7 +3280,7 @@ class RequestHandler {
             );
         } else {
             throw new Error(
-                `Unable to forward request: No WebSocket connection found for authIndex=${this.currentAuthIndex}`
+                `Unable to forward request: No WebSocket connection found for session ${this.currentSessionId}`
             );
         }
     }

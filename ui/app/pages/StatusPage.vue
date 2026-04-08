@@ -135,11 +135,15 @@
                         <div class="status-list">
                             <div class="status-item">
                                 <span class="label">{{ t("serviceConnection") }}</span
-                                ><span class="value" :class="serviceConnectedClass">{{ serviceConnectedText }}</span>
+                                ><span class="value status-text-bold" :class="serviceConnectedClass">{{
+                                    serviceConnectedText
+                                }}</span>
                             </div>
                             <div class="status-item">
                                 <span class="label">{{ t("browserConnection") }}</span
-                                ><span class="value" :class="browserConnectedClass">{{ browserConnectedText }}</span>
+                                ><span class="value status-text-bold" :class="browserConnectedClass">{{
+                                    browserConnectedText
+                                }}</span>
                             </div>
                             <div class="status-item">
                                 <span class="label">{{ t("wsPortLabel") }}</span
@@ -147,7 +151,7 @@
                             </div>
                             <div class="status-item">
                                 <span class="label">{{ tf("selectionStrategyLabel", "Selection Strategy") }}</span
-                                ><span class="value mono">{{ state.selectionStrategy }}</span>
+                                ><span class="value mono">{{ selectionStrategyText }}</span>
                             </div>
                         </div>
                     </section>
@@ -181,11 +185,7 @@
                             </div>
                             <div class="status-item">
                                 <span class="label">{{ tf("errorThresholdLabel", "Error Threshold") }}</span
-                                ><span class="value">{{ state.browserWsErrorThreshold }}</span>
-                            </div>
-                            <div class="status-item">
-                                <span class="label">{{ t("streamingMode") }}</span
-                                ><span class="value mono">{{ state.streamingMode }}</span>
+                                ><span class="value">{{ state.sessionErrorThreshold }}</span>
                             </div>
                         </div>
                     </section>
@@ -205,30 +205,48 @@
                             >
                                 <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path>
                             </svg>
-                            {{ t("settings") }}
+                            {{ t("proxySettingsStatus") }}
                         </h3>
                         <div class="status-list">
                             <div class="status-item">
+                                <span class="label"
+                                    >{{ t("streamingMode") }}
+                                    <span class="label-note">({{ t("onlyAppliesWhenStreamingEnabled") }})</span></span
+                                ><span
+                                    class="value status-text-bold"
+                                    :class="state.streamingMode === 'real' ? 'status-ok' : 'status-error'"
+                                    >{{ streamingModeText }}</span
+                                >
+                            </div>
+                            <div class="status-item">
                                 <span class="label">{{ t("forceThinking") }}</span
-                                ><span class="value" :class="state.forceThinking ? 'status-ok' : 'status-warning'">{{
-                                    state.forceThinking ? t("enabled") : t("disabled")
-                                }}</span>
+                                ><span
+                                    class="value status-text-bold"
+                                    :class="state.forceThinking ? 'status-ok' : 'status-warning'"
+                                    >{{ state.forceThinking ? t("enabled") : t("disabled") }}</span
+                                >
                             </div>
                             <div class="status-item">
                                 <span class="label">{{ t("forceWebSearch") }}</span
-                                ><span class="value" :class="state.forceWebSearch ? 'status-ok' : 'status-warning'">{{
-                                    state.forceWebSearch ? t("enabled") : t("disabled")
-                                }}</span>
+                                ><span
+                                    class="value status-text-bold"
+                                    :class="state.forceWebSearch ? 'status-ok' : 'status-warning'"
+                                    >{{ state.forceWebSearch ? t("enabled") : t("disabled") }}</span
+                                >
                             </div>
                             <div class="status-item">
                                 <span class="label">{{ t("forceUrlContext") }}</span
-                                ><span class="value" :class="state.forceUrlContext ? 'status-ok' : 'status-warning'">{{
-                                    state.forceUrlContext ? t("enabled") : t("disabled")
-                                }}</span>
+                                ><span
+                                    class="value status-text-bold"
+                                    :class="state.forceUrlContext ? 'status-ok' : 'status-warning'"
+                                    >{{ state.forceUrlContext ? t("enabled") : t("disabled") }}</span
+                                >
                             </div>
                             <div class="status-item">
-                                <span class="label">{{ t("logLevel") }}</span
-                                ><span class="value">{{ state.debugMode ? t("debug") : t("normal") }}</span>
+                                <span class="label"
+                                    >{{ t("maxRetries") }}
+                                    <span class="label-note">({{ t("onlyAppliesWhenFakeStreaming") }})</span></span
+                                ><span class="value">{{ state.maxRetries }}</span>
                             </div>
                         </div>
                     </section>
@@ -263,7 +281,7 @@
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
-                                    {{ tf("newSessionLinkLabel", "新建会话点击此处") }}
+                                    {{ t("newSessionLinkLabel") }}
                                 </a>
                                 <button class="action-btn" @click="refresh">{{ tf("refreshLabel", "Refresh") }}</button>
                             </div>
@@ -753,17 +771,16 @@
                                     "
                                 />
                             </div>
-                            <div class="switch-container readonly-row">
-                                <span>{{ t("wsPortLabel") }}</span>
-                                <span class="value mono">{{ state.wsPort }}</span>
-                            </div>
-                            <div class="switch-container readonly-row">
-                                <span>{{ tf("selectionStrategyLabel", "Selection Strategy") }}</span>
-                                <span class="value mono">{{ state.selectionStrategy }}</span>
-                            </div>
-                            <div class="switch-container readonly-row">
-                                <span>{{ tf("errorThresholdLabel", "Error Threshold") }}</span>
-                                <span class="value mono">{{ state.browserWsErrorThreshold }}</span>
+                            <div class="switch-container">
+                                <span class="label">{{ tf("selectionStrategyLabel", "Selection Strategy") }}</span>
+                                <el-select
+                                    :model-value="state.selectionStrategy"
+                                    style="width: 150px"
+                                    @change="handleSelectionStrategyChange"
+                                >
+                                    <el-option :label="t('selectionStrategyRound')" value="round" />
+                                    <el-option :label="t('selectionStrategyRandom')" value="random" />
+                                </el-select>
                             </div>
                         </div>
                     </div>
@@ -816,7 +833,6 @@ const langVersion = ref(I18n.state.version);
 const { theme, setTheme } = useTheme();
 
 const state = reactive({
-    browserWsErrorThreshold: 3,
     currentLang: I18n.getLang(),
     currentVersion: "",
     debugMode: false,
@@ -828,9 +844,11 @@ const state = reactive({
     logCount: 0,
     logMaxCount: 100,
     logs: "",
+    maxRetries: 3,
     releaseUrl: "",
     selectionStrategy: "round",
     serviceConnected: false,
+    sessionErrorThreshold: 3,
     streamingMode: "fake",
     wsPort: 9997,
 });
@@ -915,6 +933,10 @@ const browserConnectedText = computed(() =>
     activeSessionCount.value > 0 ? t("connected", { fallback: "Connected" }) : t("disconnected")
 );
 const browserConnectedClass = computed(() => (activeSessionCount.value > 0 ? "status-ok" : "status-warning"));
+const selectionStrategyText = computed(() =>
+    state.selectionStrategy === "random" ? t("selectionStrategyRandom") : t("selectionStrategyRound")
+);
+const streamingModeText = computed(() => (state.streamingMode === "real" ? t("real") : t("fake")));
 const formatTime = value => (value ? new Date(value).toLocaleString() : "-");
 const sessionAddress = session => session?.meta?.address || session?.meta?.ip || session?.meta?.host || "unknown";
 const sessionClientLabel = session => session?.meta?.clientLabel || "";
@@ -972,7 +994,7 @@ const copyAppVersion = () => copyText(appVersion.value);
 
 const applyStatusPayload = payload => {
     const status = payload?.status || {};
-    state.browserWsErrorThreshold = Number(status.browserWsErrorThreshold || 3);
+    state.sessionErrorThreshold = Number(status.sessionErrorThreshold || 3);
     state.debugMode = Boolean(status.debugMode);
     state.forceThinking = Boolean(status.forceThinking);
     state.forceUrlContext = Boolean(status.forceUrlContext);
@@ -980,6 +1002,7 @@ const applyStatusPayload = payload => {
     state.logCount = Number(payload?.logCount || 0);
     state.logMaxCount = Number(status.logMaxCount || 100);
     state.logs = payload?.logs || "";
+    state.maxRetries = Number(status.maxRetries || 3);
     state.selectionStrategy = status.selectionStrategy || "round";
     state.serviceConnected = Boolean(status.serviceConnected);
     state.streamingMode = status.streamingMode || "fake";
@@ -1043,6 +1066,11 @@ const handleStreamingModeChange = value => {
         return toggleStreamingMode();
     }
     return true;
+};
+const handleSelectionStrategyChange = async value => {
+    if (value && value !== state.selectionStrategy) {
+        await postSetting("selection-strategy", { strategy: value });
+    }
 };
 const handleBooleanSettingChange = (setting, value, currentValue) => {
     if (value !== currentValue) {
@@ -1303,6 +1331,12 @@ watchEffect(() => {
     flex-shrink: 0;
     transform: translateY(1px);
 }
+.label-note {
+    color: @text-secondary;
+    font-size: 0.8em;
+    font-weight: 400;
+    margin-left: 4px;
+}
 .value {
     color: @text-primary;
     font-weight: 500;
@@ -1421,10 +1455,6 @@ watchEffect(() => {
 .btn-icon span {
     font-size: 0.9rem;
     font-weight: 500;
-}
-.readonly-row {
-    padding-top: 8px;
-    border-top: 1px dashed @border-light;
 }
 .session-row {
     padding: 14px 16px;
