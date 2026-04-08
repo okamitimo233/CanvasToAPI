@@ -39,11 +39,9 @@ class SessionRegistry extends EventEmitter {
 
         this.connections.set(connectionId, connection);
         ws._connectionId = connectionId;
+        const browserLabel = this._formatConnectionLabel(connectionId, connection);
 
-        this.logger.info(
-            `[Session] Browser connected (${connectionId}) from ${meta.address || "unknown address"}` +
-                (meta.clientLabel ? ` [${meta.clientLabel}]` : "")
-        );
+        this.logger.info(`[Session] Browser connected ${browserLabel} from ${meta.address || "unknown address"}`);
 
         ws.on("message", data => this._handleIncomingMessage(data.toString(), connectionId));
         ws.on("close", (code, reasonBuffer) => {
@@ -65,10 +63,11 @@ class SessionRegistry extends EventEmitter {
             return;
         }
 
-        this.connections.delete(connectionId);
+        const browserLabel = this._formatConnectionLabel(connectionId, entry);
         this.closeQueuesForConnection(connectionId, reason);
+        this.connections.delete(connectionId);
 
-        this.logger.info(`[Session] Browser disconnected (${connectionId}). Reason: ${reason}`);
+        this.logger.info(`[Session] Browser disconnected ${browserLabel}. Reason: ${reason}`);
         this.emit("connectionRemoved", { connectionId, reason });
     }
 
@@ -157,6 +156,10 @@ class SessionRegistry extends EventEmitter {
         };
     }
 
+    formatConnectionLabel(connectionId, options = {}) {
+        return this._formatConnectionLabel(connectionId, this.connections.get(connectionId), options);
+    }
+
     getSelectionState() {
         return {
             roundCursor: this.roundCursor,
@@ -233,8 +236,9 @@ class SessionRegistry extends EventEmitter {
         }
 
         if (closedCount > 0) {
+            const browserLabel = this.formatConnectionLabel(connectionId);
             this.logger.info(
-                `[Session] Closed ${closedCount} pending queue(s) for browser ${connectionId} (reason: ${reason})`
+                `[Session] Closed ${closedCount} pending queue(s) for browser ${browserLabel} (reason: ${reason})`
             );
         }
 
@@ -295,7 +299,9 @@ class SessionRegistry extends EventEmitter {
                 ws.send(message);
                 sentCount++;
             } catch (error) {
-                this.logger.warn(`[Session] Failed to broadcast to ${connectionId}: ${error.message}`);
+                this.logger.warn(
+                    `[Session] Failed to broadcast to ${this.formatConnectionLabel(connectionId)}: ${error.message}`
+                );
             }
         }
 
@@ -307,7 +313,9 @@ class SessionRegistry extends EventEmitter {
             try {
                 this._safeCloseWebSocket(entry.ws, 1001, reason);
             } catch (error) {
-                this.logger.warn(`[Session] Failed to close browser session ${connectionId}: ${error.message}`);
+                this.logger.warn(
+                    `[Session] Failed to close browser session ${this._formatConnectionLabel(connectionId, entry)}: ${error.message}`
+                );
             }
         }
     }
@@ -343,7 +351,7 @@ class SessionRegistry extends EventEmitter {
 
             if (entry.connectionId !== connectionId) {
                 this.logger.warn(
-                    `[Session] Discarding message for request ${requestId} from ${connectionId}; expected ${entry.connectionId}`
+                    `[Session] Discarding message for request ${requestId} from ${this.formatConnectionLabel(connectionId)}; expected ${this.formatConnectionLabel(entry.connectionId)}`
                 );
                 return;
             }
@@ -400,13 +408,13 @@ class SessionRegistry extends EventEmitter {
         if (entry.failureCount >= this.sessionErrorThreshold && !entry.disabledAt) {
             entry.disabledAt = Date.now();
             this.logger.error(
-                `[Session] Browser ${connectionId} disabled after ${entry.failureCount} error(s). Last error: ${message}`
+                `[Session] Browser ${this._formatConnectionLabel(connectionId, entry)} disabled after ${entry.failureCount} error(s). Last error: ${message}`
             );
             return;
         }
 
         this.logger.warn(
-            `[Session] Browser ${connectionId} error recorded (${entry.failureCount}/${this.sessionErrorThreshold}): ${message}`
+            `[Session] Browser ${this._formatConnectionLabel(connectionId, entry)} error recorded (${entry.failureCount}/${this.sessionErrorThreshold}): ${message}`
         );
     }
 
@@ -417,7 +425,38 @@ class SessionRegistry extends EventEmitter {
         }
 
         entry.failureCount = 0;
-        this.logger.debug(`[Session] Browser ${connectionId} failure counter reset after successful response.`);
+        this.logger.debug(
+            `[Session] Browser ${this._formatConnectionLabel(connectionId, entry)} failure counter reset after successful response.`
+        );
+    }
+
+    resetConnectionHealth(connectionId) {
+        const entry = this.connections.get(connectionId);
+        if (!entry) {
+            return null;
+        }
+
+        entry.disabledAt = null;
+        entry.failureCount = 0;
+        entry.lastError = null;
+
+        this.logger.info(
+            `[Session] Browser ${this._formatConnectionLabel(connectionId, entry)} marked healthy again by user action.`
+        );
+
+        return {
+            connectedAt: entry.connectedAt,
+            connectionId,
+            disabledAt: entry.disabledAt,
+            failureCount: entry.failureCount,
+            lastError: entry.lastError,
+            lastUsedAt: entry.lastUsedAt,
+            meta: entry.meta,
+            readyState: entry.ws.readyState,
+            selectedCount: entry.selectedCount,
+            sessionId: connectionId,
+            usageCount: entry.usageCount,
+        };
     }
 
     _recordSelection(connectionId) {
@@ -438,6 +477,26 @@ class SessionRegistry extends EventEmitter {
         if (ws.readyState === 0 || ws.readyState === 1) {
             ws.close(code, reason);
         }
+    }
+
+    _formatConnectionLabel(connectionId, entry = null, options = {}) {
+        const { preferClientLabel = false } = options;
+        const normalizedId = connectionId || "unknown";
+        const clientLabel = typeof entry?.meta?.clientLabel === "string" ? entry.meta.clientLabel.trim() : "";
+
+        if (preferClientLabel) {
+            return clientLabel || normalizedId;
+        }
+
+        if (clientLabel && connectionId) {
+            return `${connectionId}(${clientLabel})`;
+        }
+
+        if (clientLabel) {
+            return `unknown(${clientLabel})`;
+        }
+
+        return normalizedId;
     }
 }
 

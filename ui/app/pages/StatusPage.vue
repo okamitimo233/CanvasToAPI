@@ -524,7 +524,6 @@
                                 >
                                     {{ t("newSessionLinkLabel") }}
                                 </a>
-                                <button class="action-btn" @click="refresh">{{ tf("refreshLabel", "Refresh") }}</button>
                             </div>
                         </div>
                         <div v-if="sessions.length === 0" class="empty-state">
@@ -535,9 +534,9 @@
                                 <div class="session-main">
                                     <div
                                         class="session-id"
-                                        :title="`${tf('browserIdentifierLabel', 'Browser Tag')}: ${sessionClientLabel(session) || session.connectionId}`"
+                                        :title="`${tf('browserIdentifierLabel', 'Browser Tag')}: ${sessionDisplayDetail(session)}`"
                                     >
-                                        {{ sessionClientLabel(session) || session.connectionId }}
+                                        {{ sessionDisplayName(session) }}
                                     </div>
                                     <div class="session-meta">
                                         <span
@@ -559,15 +558,23 @@
                                     </div>
                                 </div>
                                 <div class="session-side">
-                                    <span
-                                        class="session-badge"
-                                        :class="session.disabledAt ? 'status-error' : 'status-ok'"
-                                        >{{
-                                            session.disabledAt
-                                                ? tf("disabledLabel", "Disabled")
-                                                : tf("onlineLabel", "Online")
-                                        }}</span
+                                    <button
+                                        v-if="session.disabledAt"
+                                        type="button"
+                                        class="session-badge session-badge-button status-error"
+                                        :title="
+                                            tf(
+                                                'sessionResetActionHint',
+                                                'Click to mark this session healthy again and clear errors.'
+                                            )
+                                        "
+                                        @click="handleSessionStatusClick(session)"
                                     >
+                                        {{ tf("disabledLabel", "Disabled") }}
+                                    </button>
+                                    <span v-else class="session-badge status-ok">
+                                        {{ tf("onlineLabel", "Online") }}
+                                    </span>
                                     <span class="mono"
                                         >{{ tf("usageCount", "Usage Count") }} {{ session.usageCount || 0 }}</span
                                     >
@@ -1232,7 +1239,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watchEffect } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessageBox } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import EnvVarTooltip from "../components/EnvVarTooltip.vue";
 import I18n from "../utils/i18n";
 import escapeHtml from "../utils/escapeHtml";
@@ -1326,6 +1333,17 @@ const streamingModeText = computed(() => (state.streamingMode === "real" ? t("re
 const formatTime = value => (value ? new Date(value).toLocaleString() : "-");
 const sessionAddress = session => session?.meta?.address || session?.meta?.ip || session?.meta?.host || "unknown";
 const sessionClientLabel = session => session?.meta?.clientLabel || "";
+const sessionDisplayName = session => sessionClientLabel(session) || session?.connectionId || "unknown";
+const sessionDisplayDetail = session => {
+    const clientLabel = sessionClientLabel(session);
+    const connectionId = session?.connectionId || "";
+
+    if (clientLabel && connectionId) {
+        return `${clientLabel} (${connectionId})`;
+    }
+
+    return clientLabel || connectionId || "unknown";
+};
 const sessionUserAgent = session => session?.meta?.userAgent || "";
 const parseBrowserInfo = userAgent => {
     if (!userAgent) {
@@ -1540,6 +1558,49 @@ const handleLogMaxCountChange = async value => {
     }
 
     await refresh();
+};
+const resetSessionHealth = async session => {
+    const sessionId = session?.connectionId;
+    const response = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/reset-health`, {
+        headers: { "Content-Type": "application/json" },
+        method: "PUT",
+    });
+    if (!response.ok) {
+        throw new Error(`session reset failed (${response.status})`);
+    }
+    await refresh();
+    ElMessage.success(
+        t("sessionResetSuccess", {
+            fallback: `Session ${sessionDisplayName(session)} restored successfully.`,
+            session: sessionDisplayName(session),
+        })
+    );
+};
+const handleSessionStatusClick = async session => {
+    if (!session?.disabledAt || !session?.connectionId) {
+        return;
+    }
+
+    const sessionName = sessionDisplayName(session);
+
+    try {
+        await ElMessageBox.confirm(
+            t("sessionResetConfirm", {
+                fallback: `Mark session ${sessionName} healthy again and clear its error state?`,
+                session: sessionName,
+            }),
+            t("warningTitle"),
+            {
+                cancelButtonText: t("cancel"),
+                confirmButtonText: t("ok"),
+                type: "warning",
+            }
+        );
+    } catch {
+        return;
+    }
+
+    await resetSessionHealth(session);
 };
 const handleLanguageChange = async value => {
     await I18n.setLang(value);
@@ -1966,6 +2027,18 @@ watchEffect(() => {
     padding: 2px 8px;
     border-radius: 12px;
     color: @text-on-primary;
+}
+.session-badge-button {
+    border: none;
+    cursor: pointer;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
+}
+.session-badge-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(var(--color-error-rgb), 0.18);
 }
 .session-badge.status-ok {
     background: @success-color;

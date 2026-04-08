@@ -26,10 +26,6 @@ class RequestHandler {
         this.logger = logger;
         this.config = config || {};
 
-        this.sessionState = {
-            currentSessionId: null,
-            switchToNextSession: async excludedConnectionIds => this._switchToNextSession(excludedConnectionIds),
-        };
         this.formatConverter = new FormatConverter(logger, serverSystem);
 
         this.maxRetries = this.config.maxRetries;
@@ -37,23 +33,11 @@ class RequestHandler {
         this.timeouts = TIMEOUTS;
     }
 
-    get currentSessionId() {
-        return this.sessionState.currentSessionId;
-    }
-
-    set currentSessionId(value) {
-        this.sessionState.currentSessionId = value;
-    }
-
-    get isSystemBusy() {
-        return false;
-    }
-
     _selectConnection(excludedConnectionIds = new Set()) {
         return this.connectionRegistry.pickConnection(this.config.sessionSelectionStrategy, excludedConnectionIds);
     }
 
-    _incrementSessionUsageCount(connectionId = this.currentSessionId) {
+    _incrementSessionUsageCount(connectionId) {
         if (!connectionId) {
             return 0;
         }
@@ -61,26 +45,32 @@ class RequestHandler {
         return this.connectionRegistry.recordConnectionUsage(connectionId);
     }
 
-    async _switchToNextSession(excludedConnectionIds = new Set()) {
+    _describeSession(sessionId, options = {}) {
+        if (!sessionId) {
+            return "(unassigned)";
+        }
+
+        if (typeof this.connectionRegistry?.formatConnectionLabel === "function") {
+            return this.connectionRegistry.formatConnectionLabel(sessionId, options);
+        }
+
+        return sessionId;
+    }
+
+    async _switchToNextSession(currentSessionId, excludedConnectionIds = new Set()) {
         const nextConnection = this.connectionRegistry.switchToNextConnection(
-            this.currentSessionId,
+            currentSessionId,
             this.config.sessionSelectionStrategy,
             excludedConnectionIds
         );
         if (!nextConnection) {
-            return false;
+            return null;
         }
 
-        const previousConnectionId = this.currentSessionId;
-        this.currentSessionId = nextConnection.connectionId;
         this.logger.info(
-            `[Session] Switched session from ${previousConnectionId || "(unassigned)"} to ${this.currentSessionId} via ${this.config.sessionSelectionStrategy}.`
+            `[Session] Switched session from ${this._describeSession(currentSessionId)} to ${this._describeSession(nextConnection.connectionId)} via ${this.config.sessionSelectionStrategy}.`
         );
-        return true;
-    }
-
-    async _waitForGraceReconnect(timeoutMs = 60000) {
-        return this._waitForConnection(timeoutMs);
+        return nextConnection.connectionId;
     }
 
     _isConnectionResetError(error) {
@@ -354,8 +344,8 @@ class RequestHandler {
      * Handle missing browser sessions in the browser-owned architecture.
      * @returns {boolean} true if a usable session is available, false otherwise
      */
-    async _handleBrowserRecovery(res) {
-        if (this.currentSessionId && this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
+    async _handleBrowserRecovery(res, sessionId) {
+        if (sessionId && this.connectionRegistry.getConnectionBySession(sessionId)) {
             return true;
         }
 
@@ -363,12 +353,12 @@ class RequestHandler {
         return false;
     }
 
-    async _waitForConnection(timeoutMs = 10000) {
+    async _waitForConnection(sessionId, timeoutMs = 10000) {
         const startTime = Date.now();
         const checkInterval = 200;
 
         while (Date.now() - startTime < timeoutMs) {
-            const connection = this.connectionRegistry.getConnectionBySession(this.currentSessionId);
+            const connection = this.connectionRegistry.getConnectionBySession(sessionId);
             if (connection && connection.readyState === 1) {
                 return true;
             }
@@ -376,7 +366,7 @@ class RequestHandler {
         }
 
         this.logger.warn(
-            `[Request] Timeout waiting for WebSocket connection for browser session ${this.currentSessionId || "(unassigned)"}.`
+            `[Request] Timeout waiting for WebSocket connection for browser session ${this._describeSession(sessionId)}.`
         );
         return false;
     }
@@ -385,7 +375,7 @@ class RequestHandler {
         return true;
     }
 
-    async _waitForSystemAndConnectionIfBusy(res = null, options = {}) {
+    async _waitForSystemAndConnectionIfBusy(res = null, sessionId, options = {}) {
         const {
             connectionMessage = "Service temporarily unavailable: No browser session connected.",
             connectionTimeoutMs = 1000,
@@ -393,7 +383,7 @@ class RequestHandler {
             sendError = res ? (status, message) => this._sendErrorResponse(res, status, message) : () => {},
         } = options;
 
-        const connectionReady = await this._waitForConnection(connectionTimeoutMs);
+        const connectionReady = await this._waitForConnection(sessionId, connectionTimeoutMs);
         if (!connectionReady) {
             if (typeof onConnectionTimeout === "function") {
                 try {
@@ -409,10 +399,10 @@ class RequestHandler {
         return true;
     }
 
-    _createImmediateSwitchTracker() {
+    _createImmediateSwitchTracker(sessionId) {
         const attemptedSessionIds = new Set();
-        if (this.currentSessionId) {
-            attemptedSessionIds.add(this.currentSessionId);
+        if (sessionId) {
+            attemptedSessionIds.add(sessionId);
         }
         return { attemptedSessionIds };
     }
@@ -442,17 +432,17 @@ class RequestHandler {
         return `Received error: ${errorDetails?.message || "unknown error"}`;
     }
 
-    async _performImmediateSwitchRetry(errorDetails, requestId, tracker) {
-        const switched = await this.sessionState.switchToNextSession(tracker.attemptedSessionIds);
-        if (!switched) {
+    async _performImmediateSwitchRetry(errorDetails, requestId, tracker, sessionId) {
+        const nextSessionId = await this._switchToNextSession(sessionId, tracker.attemptedSessionIds);
+        if (!nextSessionId) {
             this.logger.warn(
                 `[Request] Immediate switch for request #${requestId} did not find another available browser session.`
             );
-            return false;
+            return null;
         }
 
-        tracker.attemptedSessionIds.add(this.currentSessionId);
-        return true;
+        tracker.attemptedSessionIds.add(nextSessionId);
+        return nextSessionId;
     }
 
     // Process standard Google API requests
@@ -465,18 +455,18 @@ class RequestHandler {
             this._sendErrorResponse(res, 503, "No browser session is currently connected.");
             return;
         }
-        this.currentSessionId = selectedConnection.connectionId;
+        const sessionId = selectedConnection.connectionId;
 
         // Check current session's browser connection
-        if (!this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
-            this.logger.warn(`[Request] No WebSocket connection for session ${this.currentSessionId}`);
-            const recovered = await this._handleBrowserRecovery(res);
+        if (!this.connectionRegistry.getConnectionBySession(sessionId)) {
+            this.logger.warn(`[Request] No WebSocket connection for session ${this._describeSession(sessionId)}`);
+            const recovered = await this._handleBrowserRecovery(res, sessionId);
             if (!recovered) return;
         }
 
         // Wait for system to become ready if it's busy
         {
-            const ready = await this._waitForSystemAndConnectionIfBusy(res);
+            const ready = await this._waitForSystemAndConnectionIfBusy(res, sessionId);
             if (!ready) return;
         }
         const isGenerativeRequest =
@@ -494,23 +484,23 @@ class RequestHandler {
             // Create message queue inside try-catch to handle an invalid session selection
             const messageQueue = this.connectionRegistry.createMessageQueue(
                 requestId,
-                this.currentSessionId,
+                sessionId,
                 proxyRequest.request_attempt_id
             );
-            this._setupClientDisconnectHandler(res, requestId);
+            this._setupClientDisconnectHandler(res, requestId, () => sessionId);
 
             if (wantsStream) {
                 this.logger.info(
                     `[Request] Client enabled streaming (${proxyRequest.streaming_mode}), entering streaming processing mode...`
                 );
                 if (proxyRequest.streaming_mode === "fake") {
-                    await this._handlePseudoStreamResponse(proxyRequest, messageQueue, req, res);
+                    await this._handlePseudoStreamResponse(proxyRequest, messageQueue, req, res, sessionId);
                 } else {
-                    await this._handleRealStreamResponse(proxyRequest, messageQueue, req, res);
+                    await this._handleRealStreamResponse(proxyRequest, messageQueue, req, res, sessionId);
                 }
             } else {
                 proxyRequest.streaming_mode = "fake";
-                await this._handleNonStreamResponse(proxyRequest, messageQueue, req, res);
+                await this._handleNonStreamResponse(proxyRequest, messageQueue, req, res, sessionId);
             }
         } catch (error) {
             // Handle queue timeout by notifying browser
@@ -533,18 +523,18 @@ class RequestHandler {
             this._sendErrorResponse(res, 503, "No browser session is currently connected.");
             return;
         }
-        this.currentSessionId = selectedConnection.connectionId;
+        let sessionId = selectedConnection.connectionId;
 
         // Check current session's browser connection
-        if (!this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
-            this.logger.warn(`[Request] No WebSocket connection for session ${this.currentSessionId}`);
-            const recovered = await this._handleBrowserRecovery(res);
+        if (!this.connectionRegistry.getConnectionBySession(sessionId)) {
+            this.logger.warn(`[Request] No WebSocket connection for session ${this._describeSession(sessionId)}`);
+            const recovered = await this._handleBrowserRecovery(res, sessionId);
             if (!recovered) return;
         }
 
         // Wait for system to become ready if it's busy
         {
-            const ready = await this._waitForSystemAndConnectionIfBusy(res);
+            const ready = await this._waitForSystemAndConnectionIfBusy(res, sessionId);
             if (!ready) return;
         }
         const isOpenAIStream = req.body.stream === true;
@@ -583,35 +573,37 @@ class RequestHandler {
             // Create message queue inside try-catch to handle an invalid session selection
             const messageQueue = this.connectionRegistry.createMessageQueue(
                 requestId,
-                this.currentSessionId,
+                sessionId,
                 proxyRequest.request_attempt_id
             );
-            this._setupClientDisconnectHandler(res, requestId);
+            this._setupClientDisconnectHandler(res, requestId, () => sessionId);
 
             if (useRealStream) {
                 let currentQueue = messageQueue;
                 let initialMessage;
                 let skipFinalFailureSwitch = false;
-                const immediateSwitchTracker = this._createImmediateSwitchTracker();
+                const immediateSwitchTracker = this._createImmediateSwitchTracker(sessionId);
 
                 // eslint-disable-next-line no-constant-condition
                 while (true) {
-                    this._forwardRequest(proxyRequest);
+                    this._forwardRequest(proxyRequest, sessionId);
                     initialMessage = await currentQueue.dequeue();
 
                     if (initialMessage.event_type === "error" && this._shouldSwitchSessionOnError(initialMessage)) {
                         this.logger.warn(
                             `[Request] OpenAI real stream ${this._describeErrorForSessionSwitch(initialMessage)}, switching session and retrying...`
                         );
-                        const switched = await this._performImmediateSwitchRetry(
+                        const nextSessionId = await this._performImmediateSwitchRetry(
                             initialMessage,
                             requestId,
-                            immediateSwitchTracker
+                            immediateSwitchTracker,
+                            sessionId
                         );
-                        if (!switched) {
+                        if (!nextSessionId) {
                             skipFinalFailureSwitch = true;
                             break;
                         }
+                        sessionId = nextSessionId;
 
                         try {
                             currentQueue.close("retry_after_429");
@@ -621,7 +613,7 @@ class RequestHandler {
                         this._advanceProxyRequestAttempt(proxyRequest);
                         currentQueue = this.connectionRegistry.createMessageQueue(
                             requestId,
-                            this.currentSessionId,
+                            sessionId,
                             proxyRequest.request_attempt_id
                         );
                         continue;
@@ -680,7 +672,7 @@ class RequestHandler {
                 }
 
                 try {
-                    const result = await this._executeRequestWithRetries(proxyRequest, messageQueue);
+                    const result = await this._executeRequestWithRetries(proxyRequest, messageQueue, sessionId);
 
                     if (!result.success) {
                         this._logFinalRequestFailure(result.error, "OpenAI fake/non-stream");
@@ -813,18 +805,18 @@ class RequestHandler {
             this._sendErrorResponse(res, 503, "No browser session is currently connected.");
             return;
         }
-        this.currentSessionId = selectedConnection.connectionId;
+        let sessionId = selectedConnection.connectionId;
 
         // Check current session's browser connection
-        if (!this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
-            this.logger.warn(`[Request] No WebSocket connection for session ${this.currentSessionId}`);
-            const recovered = await this._handleBrowserRecovery(res);
+        if (!this.connectionRegistry.getConnectionBySession(sessionId)) {
+            this.logger.warn(`[Request] No WebSocket connection for session ${this._describeSession(sessionId)}`);
+            const recovered = await this._handleBrowserRecovery(res, sessionId);
             if (!recovered) return;
         }
 
         // Wait for system to become ready if it's busy
         {
-            const ready = await this._waitForSystemAndConnectionIfBusy(res);
+            const ready = await this._waitForSystemAndConnectionIfBusy(res, sessionId);
             if (!ready) return;
         }
         const isOpenAIStream = req.body.stream === true;
@@ -913,35 +905,37 @@ class RequestHandler {
             // Create message queue inside try-catch to handle an invalid session selection
             const messageQueue = this.connectionRegistry.createMessageQueue(
                 requestId,
-                this.currentSessionId,
+                sessionId,
                 proxyRequest.request_attempt_id
             );
-            this._setupClientDisconnectHandler(res, requestId);
+            this._setupClientDisconnectHandler(res, requestId, () => sessionId);
 
             if (useRealStream) {
                 let currentQueue = messageQueue;
                 let initialMessage;
                 let skipFinalFailureSwitch = false;
-                const immediateSwitchTracker = this._createImmediateSwitchTracker();
+                const immediateSwitchTracker = this._createImmediateSwitchTracker(sessionId);
 
                 // eslint-disable-next-line no-constant-condition
                 while (true) {
-                    this._forwardRequest(proxyRequest);
+                    this._forwardRequest(proxyRequest, sessionId);
                     initialMessage = await currentQueue.dequeue();
 
                     if (initialMessage.event_type === "error" && this._shouldSwitchSessionOnError(initialMessage)) {
                         this.logger.warn(
                             `[Request] OpenAI Response API real stream ${this._describeErrorForSessionSwitch(initialMessage)}, switching session and retrying...`
                         );
-                        const switched = await this._performImmediateSwitchRetry(
+                        const nextSessionId = await this._performImmediateSwitchRetry(
                             initialMessage,
                             requestId,
-                            immediateSwitchTracker
+                            immediateSwitchTracker,
+                            sessionId
                         );
-                        if (!switched) {
+                        if (!nextSessionId) {
                             skipFinalFailureSwitch = true;
                             break;
                         }
+                        sessionId = nextSessionId;
 
                         try {
                             currentQueue.close("retry_after_429");
@@ -951,7 +945,7 @@ class RequestHandler {
                         this._advanceProxyRequestAttempt(proxyRequest);
                         currentQueue = this.connectionRegistry.createMessageQueue(
                             requestId,
-                            this.currentSessionId,
+                            sessionId,
                             proxyRequest.request_attempt_id
                         );
                         continue;
@@ -1012,7 +1006,7 @@ class RequestHandler {
                 }
 
                 try {
-                    const result = await this._executeRequestWithRetries(proxyRequest, messageQueue);
+                    const result = await this._executeRequestWithRetries(proxyRequest, messageQueue, sessionId);
 
                     if (!result.success) {
                         this._logFinalRequestFailure(result.error, "OpenAI Response API fake/non-stream");
@@ -1155,18 +1149,18 @@ class RequestHandler {
             this._sendClaudeErrorResponse(res, 503, "overloaded_error", "No browser session is currently connected.");
             return;
         }
-        this.currentSessionId = selectedConnection.connectionId;
+        let sessionId = selectedConnection.connectionId;
 
         // Check current session's browser connection
-        if (!this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
-            this.logger.warn(`[Request] No WebSocket connection for session ${this.currentSessionId}`);
-            const recovered = await this._handleBrowserRecovery(res);
+        if (!this.connectionRegistry.getConnectionBySession(sessionId)) {
+            this.logger.warn(`[Request] No WebSocket connection for session ${this._describeSession(sessionId)}`);
+            const recovered = await this._handleBrowserRecovery(res, sessionId);
             if (!recovered) return;
         }
 
         // Wait for system to become ready if it's busy
         {
-            const ready = await this._waitForSystemAndConnectionIfBusy(res, {
+            const ready = await this._waitForSystemAndConnectionIfBusy(res, sessionId, {
                 sendError: (status, message) => this._sendClaudeErrorResponse(res, status, "overloaded_error", message),
             });
             if (!ready) return;
@@ -1208,35 +1202,37 @@ class RequestHandler {
             // Create message queue inside try-catch to handle an invalid session selection
             const messageQueue = this.connectionRegistry.createMessageQueue(
                 requestId,
-                this.currentSessionId,
+                sessionId,
                 proxyRequest.request_attempt_id
             );
-            this._setupClientDisconnectHandler(res, requestId);
+            this._setupClientDisconnectHandler(res, requestId, () => sessionId);
 
             if (useRealStream) {
                 let currentQueue = messageQueue;
                 let initialMessage;
                 let skipFinalFailureSwitch = false;
-                const immediateSwitchTracker = this._createImmediateSwitchTracker();
+                const immediateSwitchTracker = this._createImmediateSwitchTracker(sessionId);
 
                 // eslint-disable-next-line no-constant-condition
                 while (true) {
-                    this._forwardRequest(proxyRequest);
+                    this._forwardRequest(proxyRequest, sessionId);
                     initialMessage = await currentQueue.dequeue();
 
                     if (initialMessage.event_type === "error" && this._shouldSwitchSessionOnError(initialMessage)) {
                         this.logger.warn(
                             `[Request] Claude real stream ${this._describeErrorForSessionSwitch(initialMessage)}, switching session and retrying...`
                         );
-                        const switched = await this._performImmediateSwitchRetry(
+                        const nextSessionId = await this._performImmediateSwitchRetry(
                             initialMessage,
                             requestId,
-                            immediateSwitchTracker
+                            immediateSwitchTracker,
+                            sessionId
                         );
-                        if (!switched) {
+                        if (!nextSessionId) {
                             skipFinalFailureSwitch = true;
                             break;
                         }
+                        sessionId = nextSessionId;
 
                         try {
                             currentQueue.close("retry_after_429");
@@ -1246,7 +1242,7 @@ class RequestHandler {
                         this._advanceProxyRequestAttempt(proxyRequest);
                         currentQueue = this.connectionRegistry.createMessageQueue(
                             requestId,
-                            this.currentSessionId,
+                            sessionId,
                             proxyRequest.request_attempt_id
                         );
                         continue;
@@ -1302,7 +1298,7 @@ class RequestHandler {
                 }
 
                 try {
-                    const result = await this._executeRequestWithRetries(proxyRequest, messageQueue);
+                    const result = await this._executeRequestWithRetries(proxyRequest, messageQueue, sessionId);
 
                     if (!result.success) {
                         this._logFinalRequestFailure(result.error, "Claude fake/non-stream");
@@ -1437,18 +1433,18 @@ class RequestHandler {
             this._sendClaudeErrorResponse(res, 503, "overloaded_error", "No browser session is currently connected.");
             return;
         }
-        this.currentSessionId = selectedConnection.connectionId;
+        const sessionId = selectedConnection.connectionId;
 
         // Check current session's browser connection
-        if (!this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
-            this.logger.warn(`[Request] No WebSocket connection for session ${this.currentSessionId}`);
-            const recovered = await this._handleBrowserRecovery(res);
+        if (!this.connectionRegistry.getConnectionBySession(sessionId)) {
+            this.logger.warn(`[Request] No WebSocket connection for session ${this._describeSession(sessionId)}`);
+            const recovered = await this._handleBrowserRecovery(res, sessionId);
             if (!recovered) return;
         }
 
         // Wait for system to become ready if it's busy
         {
-            const ready = await this._waitForSystemAndConnectionIfBusy(res, {
+            const ready = await this._waitForSystemAndConnectionIfBusy(res, sessionId, {
                 sendError: (status, message) => this._sendClaudeErrorResponse(res, status, "overloaded_error", message),
             });
             if (!ready) return;
@@ -1491,12 +1487,12 @@ class RequestHandler {
             // Create message queue inside try-catch to handle an invalid session selection
             const messageQueue = this.connectionRegistry.createMessageQueue(
                 requestId,
-                this.currentSessionId,
+                sessionId,
                 proxyRequest.request_attempt_id
             );
-            this._setupClientDisconnectHandler(res, requestId);
+            this._setupClientDisconnectHandler(res, requestId, () => sessionId);
 
-            this._forwardRequest(proxyRequest);
+            this._forwardRequest(proxyRequest, sessionId);
             const response = await messageQueue.dequeue();
 
             if (response.event_type === "error") {
@@ -1553,18 +1549,18 @@ class RequestHandler {
             this._sendErrorResponse(res, 503, "No browser session is currently connected.");
             return;
         }
-        this.currentSessionId = selectedConnection.connectionId;
+        const sessionId = selectedConnection.connectionId;
 
         // Check current session's browser connection
-        if (!this.connectionRegistry.getConnectionBySession(this.currentSessionId)) {
-            this.logger.warn(`[Request] No WebSocket connection for session ${this.currentSessionId}`);
-            const recovered = await this._handleBrowserRecovery(res);
+        if (!this.connectionRegistry.getConnectionBySession(sessionId)) {
+            this.logger.warn(`[Request] No WebSocket connection for session ${this._describeSession(sessionId)}`);
+            const recovered = await this._handleBrowserRecovery(res, sessionId);
             if (!recovered) return;
         }
 
         // Wait for system to become ready if it's busy
         {
-            const ready = await this._waitForSystemAndConnectionIfBusy(res);
+            const ready = await this._waitForSystemAndConnectionIfBusy(res, sessionId);
             if (!ready) return;
         }
 
@@ -1603,12 +1599,12 @@ class RequestHandler {
         try {
             const messageQueue = this.connectionRegistry.createMessageQueue(
                 requestId,
-                this.currentSessionId,
+                sessionId,
                 proxyRequest.request_attempt_id
             );
-            this._setupClientDisconnectHandler(res, requestId);
+            this._setupClientDisconnectHandler(res, requestId, () => sessionId);
 
-            this._forwardRequest(proxyRequest);
+            this._forwardRequest(proxyRequest, sessionId);
             const response = await messageQueue.dequeue();
 
             if (response.event_type === "error") {
@@ -1872,7 +1868,7 @@ class RequestHandler {
         }
     }
 
-    async _handlePseudoStreamResponse(proxyRequest, messageQueue, req, res) {
+    async _handlePseudoStreamResponse(proxyRequest, messageQueue, req, res, sessionId) {
         this.logger.info("[Request] Entering pseudo-stream mode...");
 
         // Per user request, convert the backend call to non-streaming.
@@ -1899,7 +1895,7 @@ class RequestHandler {
         scheduleNextKeepAlive();
 
         try {
-            const result = await this._executeRequestWithRetries(proxyRequest, messageQueue);
+            const result = await this._executeRequestWithRetries(proxyRequest, messageQueue, sessionId);
 
             if (!result.success) {
                 clearTimeout(connectionMaintainer);
@@ -2146,31 +2142,33 @@ class RequestHandler {
         }
     }
 
-    async _handleRealStreamResponse(proxyRequest, messageQueue, req, res) {
+    async _handleRealStreamResponse(proxyRequest, messageQueue, req, res, sessionId) {
         this.logger.info(`[Request] Request dispatched to browser for processing...`);
         let currentQueue = messageQueue;
         let headerMessage;
         let skipFinalFailureSwitch = false;
-        const immediateSwitchTracker = this._createImmediateSwitchTracker();
+        const immediateSwitchTracker = this._createImmediateSwitchTracker(sessionId);
 
         // eslint-disable-next-line no-constant-condition
         while (true) {
-            this._forwardRequest(proxyRequest);
+            this._forwardRequest(proxyRequest, sessionId);
             headerMessage = await currentQueue.dequeue();
 
             if (headerMessage.event_type === "error" && this._shouldSwitchSessionOnError(headerMessage)) {
                 this.logger.warn(
                     `[Request] Gemini real stream ${this._describeErrorForSessionSwitch(headerMessage)}, switching session and retrying...`
                 );
-                const switched = await this._performImmediateSwitchRetry(
+                const nextSessionId = await this._performImmediateSwitchRetry(
                     headerMessage,
                     proxyRequest.request_id,
-                    immediateSwitchTracker
+                    immediateSwitchTracker,
+                    sessionId
                 );
-                if (!switched) {
+                if (!nextSessionId) {
                     skipFinalFailureSwitch = true;
                     break;
                 }
+                sessionId = nextSessionId;
 
                 try {
                     currentQueue.close("retry_after_429");
@@ -2181,7 +2179,7 @@ class RequestHandler {
                 this._advanceProxyRequestAttempt(proxyRequest);
                 currentQueue = this.connectionRegistry.createMessageQueue(
                     proxyRequest.request_id,
-                    this.currentSessionId,
+                    sessionId,
                     proxyRequest.request_attempt_id
                 );
                 continue;
@@ -2297,11 +2295,11 @@ class RequestHandler {
         }
     }
 
-    async _handleNonStreamResponse(proxyRequest, messageQueue, req, res) {
+    async _handleNonStreamResponse(proxyRequest, messageQueue, req, res, sessionId) {
         this.logger.info(`[Request] Entering non-stream processing mode...`);
 
         try {
-            const result = await this._executeRequestWithRetries(proxyRequest, messageQueue);
+            const result = await this._executeRequestWithRetries(proxyRequest, messageQueue, sessionId);
 
             if (!result.success) {
                 // If retries failed, return the last browser-side error
@@ -2411,17 +2409,18 @@ class RequestHandler {
         return fullBody;
     }
 
-    async _executeRequestWithRetries(proxyRequest, messageQueue) {
+    async _executeRequestWithRetries(proxyRequest, messageQueue, initialSessionId) {
         let lastError = null;
         let currentQueue = messageQueue;
+        let sessionId = initialSessionId;
         // Track the session id for the current queue to ensure proper cleanup
-        let currentQueueSessionId = this.currentSessionId;
+        let currentQueueSessionId = sessionId;
         let retryAttempt = 1;
-        const immediateSwitchTracker = this._createImmediateSwitchTracker();
+        const immediateSwitchTracker = this._createImmediateSwitchTracker(sessionId);
 
         while (retryAttempt <= this.maxRetries) {
             try {
-                this._forwardRequest(proxyRequest);
+                this._forwardRequest(proxyRequest, sessionId);
 
                 const initialMessage = await currentQueue.dequeue();
 
@@ -2483,15 +2482,17 @@ class RequestHandler {
                         `[Request] ${this._describeErrorForSessionSwitch(lastError)}, switching session and retrying...`
                     );
                     try {
-                        const switched = await this._performImmediateSwitchRetry(
+                        const nextSessionId = await this._performImmediateSwitchRetry(
                             lastError,
                             proxyRequest.request_id,
-                            immediateSwitchTracker
+                            immediateSwitchTracker,
+                            sessionId
                         );
-                        if (!switched) {
+                        if (!nextSessionId) {
                             lastError = { ...lastError, skipSessionSwitch: true };
                             break;
                         }
+                        sessionId = nextSessionId;
                     } catch (switchError) {
                         lastError = { ...lastError, skipSessionSwitch: true };
                         this.logger.error(`[Request] Session switch failed during retry flow: ${switchError.message}`);
@@ -2505,15 +2506,15 @@ class RequestHandler {
                     }
 
                     this.logger.debug(
-                        `[Request] Creating new message queue after session switch for request #${proxyRequest.request_id} (switching from session ${currentQueueSessionId} to ${this.currentSessionId})`
+                        `[Request] Creating new message queue after session switch for request #${proxyRequest.request_id} (switching from session ${this._describeSession(currentQueueSessionId)} to ${this._describeSession(sessionId)})`
                     );
                     this._advanceProxyRequestAttempt(proxyRequest);
                     currentQueue = this.connectionRegistry.createMessageQueue(
                         proxyRequest.request_id,
-                        this.currentSessionId,
+                        sessionId,
                         proxyRequest.request_attempt_id
                     );
-                    currentQueueSessionId = this.currentSessionId;
+                    currentQueueSessionId = sessionId;
                     continue;
                 }
 
@@ -2524,15 +2525,17 @@ class RequestHandler {
                         `[Request] ${this._describeErrorForSessionSwitch(errorPayload)}, switching session and retrying...`
                     );
                     try {
-                        const switched = await this._performImmediateSwitchRetry(
+                        const nextSessionId = await this._performImmediateSwitchRetry(
                             errorPayload,
                             proxyRequest.request_id,
-                            immediateSwitchTracker
+                            immediateSwitchTracker,
+                            sessionId
                         );
-                        if (!switched) {
+                        if (!nextSessionId) {
                             lastError = { ...errorPayload, skipSessionSwitch: true };
                             break;
                         }
+                        sessionId = nextSessionId;
                     } catch (switchError) {
                         lastError = { ...errorPayload, skipSessionSwitch: true };
                         this.logger.error(
@@ -2547,15 +2550,15 @@ class RequestHandler {
                     }
 
                     this.logger.debug(
-                        `[Request] Creating new message queue after session switch for request #${proxyRequest.request_id} (switching from session ${currentQueueSessionId} to ${this.currentSessionId})`
+                        `[Request] Creating new message queue after session switch for request #${proxyRequest.request_id} (switching from session ${this._describeSession(currentQueueSessionId)} to ${this._describeSession(sessionId)})`
                     );
                     this._advanceProxyRequestAttempt(proxyRequest);
                     currentQueue = this.connectionRegistry.createMessageQueue(
                         proxyRequest.request_id,
-                        this.currentSessionId,
+                        sessionId,
                         proxyRequest.request_attempt_id
                     );
-                    currentQueueSessionId = this.currentSessionId;
+                    currentQueueSessionId = sessionId;
                     continue;
                 }
 
@@ -2593,16 +2596,16 @@ class RequestHandler {
                 // Note: We keep the same requestId so the browser response routes to the new queue
                 // createMessageQueue will automatically close and remove any existing queue with the same ID from the registry
                 this.logger.debug(
-                    `[Request] Creating new message queue for retry #${retryAttempt + 1} for request #${proxyRequest.request_id} (switching from session ${currentQueueSessionId} to ${this.currentSessionId})`
+                    `[Request] Creating new message queue for retry #${retryAttempt + 1} for request #${proxyRequest.request_id} (switching from session ${this._describeSession(currentQueueSessionId)} to ${this._describeSession(sessionId)})`
                 );
                 this._advanceProxyRequestAttempt(proxyRequest);
                 currentQueue = this.connectionRegistry.createMessageQueue(
                     proxyRequest.request_id,
-                    this.currentSessionId,
+                    sessionId,
                     proxyRequest.request_attempt_id
                 );
                 // Update tracked session id for the new queue
-                currentQueueSessionId = this.currentSessionId;
+                currentQueueSessionId = sessionId;
 
                 // Wait before the next retry
                 await new Promise(resolve => setTimeout(resolve, this.retryDelay));
@@ -3048,7 +3051,7 @@ class RequestHandler {
         }
     }
 
-    _setupClientDisconnectHandler(res, requestId) {
+    _setupClientDisconnectHandler(res, requestId, getCurrentSessionId = null) {
         res.on("close", () => {
             if (!res.writableEnded) {
                 this.logger.warn(`[Request] Client closed request #${requestId} connection prematurely.`);
@@ -3056,7 +3059,9 @@ class RequestHandler {
                 // Dynamically look up the current session id from the connection registry
                 // This ensures we cancel on the correct session even after retries switch sessions
                 const targetSessionId =
-                    this.connectionRegistry.getSessionIdForRequest(requestId) ?? this.currentSessionId;
+                    this.connectionRegistry.getSessionIdForRequest(requestId) ??
+                    (typeof getCurrentSessionId === "function" ? getCurrentSessionId() : null) ??
+                    null;
                 const requestAttemptId = this.connectionRegistry.getRequestAttemptIdForRequest(requestId);
 
                 this._cancelBrowserRequest(requestId, targetSessionId, requestAttemptId);
@@ -3067,11 +3072,11 @@ class RequestHandler {
     }
 
     _cancelBrowserRequest(requestId, sessionId, requestAttemptId = null) {
-        const targetSessionId = sessionId !== undefined ? sessionId : this.currentSessionId;
+        const targetSessionId = sessionId !== undefined ? sessionId : null;
         const connection = this.connectionRegistry.getConnectionBySession(targetSessionId);
         if (connection) {
             this.logger.info(
-                `[Request] Cancelling request #${requestId} on session ${targetSessionId}` +
+                `[Request] Cancelling request #${requestId} on session ${this._describeSession(targetSessionId)}` +
                     (requestAttemptId ? ` (attempt ${requestAttemptId})` : "")
             );
             connection.send(
@@ -3083,7 +3088,7 @@ class RequestHandler {
             );
         } else {
             this.logger.warn(
-                `[Request] Unable to send cancel instruction: No available WebSocket connection for session ${targetSessionId}.`
+                `[Request] Unable to send cancel instruction: No available WebSocket connection for session ${this._describeSession(targetSessionId)}.`
             );
         }
     }
@@ -3100,7 +3105,7 @@ class RequestHandler {
             const requestAttemptId = this.connectionRegistry.getRequestAttemptIdForRequest(requestId);
             if (sessionId !== null) {
                 this.logger.debug(
-                    `[Request] Queue timeout for request #${requestId}, notifying browser on session ${sessionId} to cancel`
+                    `[Request] Queue timeout for request #${requestId}, notifying browser on session ${this._describeSession(sessionId)} to cancel`
                 );
                 this._cancelBrowserRequest(requestId, sessionId, requestAttemptId);
             } else {
@@ -3203,7 +3208,7 @@ class RequestHandler {
                 !bodyObj.generationConfig.thinkingConfig ||
                 bodyObj.generationConfig.thinkingConfig.includeThoughts === undefined
             ) {
-                this.logger.info(`[Proxy] ?? Force thinking enabled, setting includeThoughts=true. (Google Native)`);
+                this.logger.info(`[Proxy] ⚠️ Force thinking enabled, setting includeThoughts=true. (Google Native)`);
                 bodyObj.generationConfig.thinkingConfig = {
                     ...(bodyObj.generationConfig.thinkingConfig || {}),
                     includeThoughts: true,
@@ -3332,12 +3337,12 @@ class RequestHandler {
         );
     }
 
-    _forwardRequest(proxyRequest) {
-        const connection = this.connectionRegistry.getConnectionBySession(this.currentSessionId);
+    _forwardRequest(proxyRequest, sessionId) {
+        const connection = this.connectionRegistry.getConnectionBySession(sessionId);
         if (connection) {
-            const usageCount = this._incrementSessionUsageCount(this.currentSessionId);
+            const usageCount = this._incrementSessionUsageCount(sessionId);
             this.logger.debug(
-                `[Request] Forwarding request #${proxyRequest.request_id} via session ${this.currentSessionId}` +
+                `[Request] Forwarding request #${proxyRequest.request_id} via session ${this._describeSession(sessionId)}` +
                     ` (attempt=${proxyRequest.request_attempt_id}, usage=${usageCount})`
             );
             connection.send(
@@ -3348,7 +3353,7 @@ class RequestHandler {
             );
         } else {
             throw new Error(
-                `Unable to forward request: No WebSocket connection found for session ${this.currentSessionId}`
+                `Unable to forward request: No WebSocket connection found for session ${this._describeSession(sessionId)}`
             );
         }
     }

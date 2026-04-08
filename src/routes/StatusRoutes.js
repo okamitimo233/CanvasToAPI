@@ -90,6 +90,24 @@ class StatusRoutes {
             res.json(this._getStatusData());
         });
 
+        app.put("/api/sessions/:sessionId/reset-health", isAuthenticated, (req, res) => {
+            const sessionId = String(req.params.sessionId || "").trim();
+            if (!sessionId) {
+                return res.status(400).json({ error: "Invalid session id", message: "settingFailed" });
+            }
+
+            const session = this.serverSystem.sessionRegistry.resetConnectionHealth(sessionId);
+            if (!session) {
+                return res.status(404).json({ error: "Session not found", message: "statusFetchFailed" });
+            }
+
+            res.status(200).json({
+                message: "sessionResetSuccess",
+                session,
+                sessionId,
+            });
+        });
+
         app.put("/api/settings/streaming-mode", isAuthenticated, (req, res) => {
             const newMode = req.body.mode;
             if (newMode === "fake" || newMode === "real") {
