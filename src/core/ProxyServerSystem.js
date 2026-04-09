@@ -342,39 +342,10 @@ class ProxyServerSystem extends EventEmitter {
         }
 
         this.webRoutes.sessionParser(req, {}, () => {
-            const authResult = this._isBrowserSessionUpgradeAuthorized(req, requestUrl);
-            const clientIp = this.webRoutes.authRoutes.getClientIP(req);
-
-            if (!authResult.authorized) {
-                this.logger.warn(
-                    `[Auth] Rejected browser WebSocket connection from ${clientIp}: ${authResult.reason || "unauthorized"}`
-                );
-                this._rejectUpgrade(socket, 401, "Unauthorized WebSocket connection");
-                return;
-            }
-
-            this.logger.info(`[Auth] Browser WebSocket verification passed via ${authResult.via} (from: ${clientIp})`);
-
             this.wsServer.handleUpgrade(req, socket, head, ws => {
                 this.wsServer.emit("connection", ws, req);
             });
         });
-    }
-
-    _isBrowserSessionUpgradeAuthorized(req, requestUrl) {
-        if (!this._hasConfiguredApiKeys()) {
-            return { authorized: true, via: "no_api_key_configured" };
-        }
-
-        const clientKey = this._extractClientKey(req, requestUrl);
-        if (this._isValidApiKey(clientKey)) {
-            return { authorized: true, via: "api_key" };
-        }
-
-        return {
-            authorized: false,
-            reason: clientKey ? "invalid_api_key" : "missing_api_key",
-        };
     }
 
     _rejectUpgrade(socket, statusCode, message) {
@@ -398,28 +369,11 @@ class ProxyServerSystem extends EventEmitter {
     }
 
     _buildBrowserSessionMeta(req) {
-        let clientLabel = "";
-
-        try {
-            const requestUrl = new URL(req.url || "/", `ws://${req.headers.host || "localhost"}`);
-            clientLabel = this._sanitizeBrowserClientLabel(requestUrl.searchParams.get("client_label"));
-        } catch (error) {
-            this.logger.debug(`[System] Failed to parse browser WebSocket URL: ${error.message}`);
-        }
-
         return {
             address: this.webRoutes.authRoutes.getClientIP(req),
-            clientLabel,
+            clientLabel: "",
             userAgent: req.headers["user-agent"] || "",
         };
-    }
-
-    _sanitizeBrowserClientLabel(value) {
-        if (!value) {
-            return "";
-        }
-
-        return String(value).trim().replace(/\s+/g, " ").slice(0, 64);
     }
 
     async shutdown() {

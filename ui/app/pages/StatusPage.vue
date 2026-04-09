@@ -2060,7 +2060,7 @@ watchEffect(() => {
     font-weight: 700;
 }
 .update-link:hover {
-    text-decoration: underline;
+    text-decoration: none;
 }
 .clickable-version,
 .version-align {

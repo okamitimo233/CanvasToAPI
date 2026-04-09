@@ -245,7 +245,7 @@
                         <span id="status-indicator" class="h-2 w-2 rounded-full bg-amber-500"></span>
                         <span id="status-text" class="text-[10px] font-bold uppercase tracking-wide text-amber-500">Disconnected</span>
                     </div>
-                    <span class="meta-text text-[10px] font-mono text-slate-600">v0.0.4-stable</span>
+                    <span class="meta-text text-[10px] font-mono text-slate-600">v0.0.5-stable</span>
                 </div>
             </div>
         </div>
@@ -632,10 +632,12 @@
             this.clientLabel = sanitizeClientLabel(clientLabel);
             this.socket = null;
             this.isConnected = false;
+            this.isAuthenticated = false;
             this.reconnectDelay = 5000;
             this.reconnectAttempts = 0;
             this.reconnectTimer = null;
             this.manualDisconnect = false;
+            this.shouldReconnect = true;
         }
 
         updateEndpoint(newEndpoint) {
@@ -673,29 +675,34 @@
             setStatus("connecting");
 
             return new Promise((resolve, reject) => {
+                let settled = false;
                 try {
                     this.manualDisconnect = false;
+                    this.shouldReconnect = true;
+                    this.isConnected = false;
+                    this.isAuthenticated = false;
                     this.socket = new WebSocket(wsUrl);
 
                     this.socket.addEventListener("open", () => {
-                        this.isConnected = true;
-                        this.reconnectAttempts = 0;
+                        Logger.output("WebSocket connected, waiting for authentication...");
                         Logger.output("✅ Connection successful!");
-                        setStatus("connected");
-                        this.dispatchEvent(new CustomEvent("connected"));
-                        resolve();
+                        this._sendAuthMessage();
+                        setStatus("connecting");
                     });
 
                     this.socket.addEventListener("close", () => {
                         this.isConnected = false;
-                        Logger.output(
-                            this.manualDisconnect
-                                ? "Connection closed by user."
-                                : "❌ Connection disconnected, preparing to reconnect..."
-                        );
-                        setStatus(this.manualDisconnect ? "disconnected" : "reconnecting");
+                        this.isAuthenticated = false;
+                        const shouldAutoReconnect = !this.manualDisconnect && this.shouldReconnect;
+                        const closeMessage = this.manualDisconnect
+                            ? "Connection closed by user."
+                            : shouldAutoReconnect
+                                ? "Connection disconnected, preparing to reconnect..."
+                                : "Connection disconnected.";
+                        Logger.output(closeMessage);
+                        setStatus(shouldAutoReconnect ? "reconnecting" : this.manualDisconnect ? "disconnected" : "error");
                         this.dispatchEvent(new CustomEvent("disconnected"));
-                        if (!this.manualDisconnect) {
+                        if (shouldAutoReconnect) {
                             this._scheduleReconnect();
                         }
                     });
@@ -706,10 +713,47 @@
                         );
                         setStatus("error");
                         this.dispatchEvent(new CustomEvent("error", { detail: error }));
-                        if (!this.isConnected) reject(error);
+                        if (!settled) {
+                            settled = true;
+                            reject(error);
+                        }
                     });
 
                     this.socket.addEventListener("message", event => {
+                        try {
+                            const payload = JSON.parse(event.data);
+                            if (payload?.event_type === "auth_ack") {
+                                if (payload.authorized) {
+                                    this.isConnected = true;
+                                    this.isAuthenticated = true;
+                                    this.reconnectAttempts = 0;
+                                    Logger.output("Connection authenticated successfully!");
+                                    setStatus("connected");
+                                    this.dispatchEvent(new CustomEvent("connected"));
+                                    if (!settled) {
+                                        settled = true;
+                                        resolve();
+                                    }
+                                } else {
+                                    this.isConnected = false;
+                                    this.isAuthenticated = false;
+                                    this.shouldReconnect = false;
+                                    Logger.output(
+                                        `Authentication failed: ${payload.message || "invalid API key or client label"}`
+                                    );
+                                    setStatus("error");
+                                    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                                        this.socket.close();
+                                    }
+                                    if (!settled) {
+                                        settled = true;
+                                        reject(new Error(payload.message || "WebSocket authentication failed"));
+                                    }
+                                }
+                                return;
+                            }
+                        } catch {}
+
                         this.dispatchEvent(new CustomEvent("message", { detail: event.data }));
                     });
                 } catch (e) {
@@ -725,6 +769,7 @@
 
         disconnect() {
             this.manualDisconnect = true;
+            this.shouldReconnect = false;
             this.reset();
             if (this.socket) {
                 this.socket.close();
@@ -732,7 +777,7 @@
         }
 
         transmit(data) {
-            if (!this.isConnected || !this.socket) {
+            if (!this.isConnected || !this.isAuthenticated || !this.socket) {
                 Logger.output("Cannot send data: Connection not established");
                 return false;
             }
@@ -758,20 +803,20 @@
 
         _buildConnectionUrl() {
             const wsUrl = new URL(this.endpoint, window.location.href);
-
-            if (this.apiKey) {
-                wsUrl.searchParams.set("key", this.apiKey);
-            } else {
-                wsUrl.searchParams.delete("key");
-            }
-
-            if (this.clientLabel) {
-                wsUrl.searchParams.set("client_label", this.clientLabel);
-            } else {
-                wsUrl.searchParams.delete("client_label");
-            }
-
+            wsUrl.search = "";
             return wsUrl.toString();
+        }
+
+        _sendAuthMessage() {
+            if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+
+            this.socket.send(JSON.stringify({
+                apiKey: this.apiKey,
+                clientLabel: this.clientLabel,
+                event_type: "authenticate",
+            }));
         }
 
         _maskSensitiveUrl(url) {

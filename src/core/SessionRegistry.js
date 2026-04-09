@@ -18,6 +18,9 @@ class SessionRegistry extends EventEmitter {
         this.messageQueues = new Map();
         this.roundCursor = 0;
         this.selectionCount = 0;
+        this.authTimeoutMs = Number.isFinite(config.browserSessionAuthTimeoutMs)
+            ? Math.max(1000, config.browserSessionAuthTimeoutMs)
+            : 10000;
         this.sessionErrorThreshold = Number.isFinite(config.sessionErrorThreshold)
             ? Math.max(1, config.sessionErrorThreshold)
             : 3;
@@ -26,6 +29,8 @@ class SessionRegistry extends EventEmitter {
     addConnection(ws, meta = {}) {
         const connectionId = randomUUID();
         const connection = {
+            authenticated: false,
+            authTimeout: null,
             connectedAt: Date.now(),
             disabledAt: null,
             failureCount: 0,
@@ -41,7 +46,21 @@ class SessionRegistry extends EventEmitter {
         ws._connectionId = connectionId;
         const browserLabel = this._formatConnectionLabel(connectionId, connection);
 
-        this.logger.info(`[Session] Browser connected ${browserLabel} from ${meta.address || "unknown address"}`);
+        connection.authTimeout = setTimeout(() => {
+            const currentEntry = this.connections.get(connectionId);
+            if (!currentEntry || currentEntry.authenticated) {
+                return;
+            }
+
+            this.logger.warn(
+                `[Auth] Browser session ${this._formatConnectionLabel(connectionId, currentEntry)} failed to authenticate in time`
+            );
+            this._safeCloseWebSocket(currentEntry.ws, 4001, "authentication_timeout");
+        }, this.authTimeoutMs);
+
+        this.logger.info(
+            `[Session] Browser connected ${browserLabel} from ${meta.address || "unknown address"} (awaiting authentication)`
+        );
 
         ws.on("message", data => this._handleIncomingMessage(data.toString(), connectionId));
         ws.on("close", (code, reasonBuffer) => {
@@ -64,6 +83,7 @@ class SessionRegistry extends EventEmitter {
         }
 
         const browserLabel = this._formatConnectionLabel(connectionId, entry);
+        this._clearAuthTimeout(entry);
         this.closeQueuesForConnection(connectionId, reason);
         this.connections.delete(connectionId);
 
@@ -81,6 +101,7 @@ class SessionRegistry extends EventEmitter {
 
     getConnections() {
         return Array.from(this.connections.entries()).map(([connectionId, entry]) => ({
+            authenticated: entry.authenticated,
             connectedAt: entry.connectedAt,
             connectionId,
             disabledAt: entry.disabledAt,
@@ -318,8 +339,9 @@ class SessionRegistry extends EventEmitter {
 
     _getAvailableConnections() {
         return Array.from(this.connections.entries())
-            .filter(([, entry]) => entry.ws.readyState === 1 && !entry.disabledAt)
+            .filter(([, entry]) => entry.ws.readyState === 1 && !entry.disabledAt && entry.authenticated)
             .map(([connectionId, entry]) => ({
+                authenticated: entry.authenticated,
                 connectedAt: entry.connectedAt,
                 connectionId,
                 failureCount: entry.failureCount,
@@ -332,6 +354,24 @@ class SessionRegistry extends EventEmitter {
     _handleIncomingMessage(messageData, connectionId) {
         try {
             const parsedMessage = JSON.parse(messageData);
+            const connection = this.connections.get(connectionId);
+
+            if (!connection) {
+                return;
+            }
+
+            if (parsedMessage.event_type === "authenticate") {
+                this._handleAuthenticationMessage(connectionId, connection, parsedMessage);
+                return;
+            }
+
+            if (!connection.authenticated) {
+                this.logger.warn(
+                    `[Auth] Ignoring non-auth message from unauthenticated browser ${this.formatConnectionLabel(connectionId)}`
+                );
+                return;
+            }
+
             const requestId = parsedMessage.request_id;
 
             if (!requestId) {
@@ -385,6 +425,48 @@ class SessionRegistry extends EventEmitter {
                 break;
             default:
                 this.logger.warn(`[Session] Unknown browser event type: ${message.event_type}`);
+        }
+    }
+
+    _handleAuthenticationMessage(connectionId, entry, message) {
+        const apiKey = typeof message.apiKey === "string" ? message.apiKey.trim() : "";
+        const clientLabel = this._sanitizeBrowserClientLabel(message.clientLabel);
+        const authRequired = Array.isArray(this.config.apiKeys) && this.config.apiKeys.length > 0;
+        const authorized = !authRequired || this.config.apiKeys.includes(apiKey);
+        const clientIdentifier = `${entry.meta.address || "unknown address"} (${clientLabel || "unlabeled"})`;
+
+        if (!authorized) {
+            this.logger.warn(
+                `[Auth] ❌ Rejected browser WebSocket authentication from ${clientIdentifier}: invalid_api_key`
+            );
+            this._sendAuthAck(entry.ws, false, "Invalid or missing API key");
+            this._safeCloseWebSocket(entry.ws, 4001, "invalid_api_key");
+            return;
+        }
+
+        entry.authenticated = true;
+        entry.meta = {
+            ...entry.meta,
+            clientLabel,
+        };
+        this._clearAuthTimeout(entry);
+        this._sendAuthAck(entry.ws, true);
+        this.logger.info(
+            `[Auth] ✅ Browser WebSocket verification passed via message auth (from: ${clientIdentifier})`
+        );
+    }
+
+    _sendAuthAck(ws, authorized, message = "") {
+        try {
+            ws.send(
+                JSON.stringify({
+                    authorized,
+                    event_type: "auth_ack",
+                    message,
+                })
+            );
+        } catch (error) {
+            this.logger.debug(`[Auth] Failed to send auth ack: ${error.message}`);
         }
     }
 
@@ -473,6 +555,23 @@ class SessionRegistry extends EventEmitter {
         if (ws.readyState === 0 || ws.readyState === 1) {
             ws.close(code, reason);
         }
+    }
+
+    _clearAuthTimeout(entry) {
+        if (!entry?.authTimeout) {
+            return;
+        }
+
+        clearTimeout(entry.authTimeout);
+        entry.authTimeout = null;
+    }
+
+    _sanitizeBrowserClientLabel(value) {
+        if (!value) {
+            return "";
+        }
+
+        return String(value).trim().replace(/\s+/g, " ").slice(0, 64);
     }
 
     _formatConnectionLabel(connectionId, entry = null, options = {}) {
