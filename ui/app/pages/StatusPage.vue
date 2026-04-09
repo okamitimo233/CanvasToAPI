@@ -566,7 +566,7 @@
                                             >{{ tf("connectedAtLabel", "Connected At") }}:
                                             {{ formatTime(session.connectedAt) }}</span
                                         >
-                                        <span class="mono">
+                                        <span class="mono session-ip">
                                             {{ tf("ipAddressLabel", "IP") }}:
                                             {{ sessionAddress(session) }}
                                         </span>
@@ -2146,6 +2146,13 @@ watchEffect(() => {
 }
 .session-meta > span {
     min-width: 0;
+    line-height: 1;
+}
+.session-ip {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1;
 }
 .session-last-error {
     flex: 1 1 100%;
@@ -2153,7 +2160,7 @@ watchEffect(() => {
     white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
-    line-height: 1.5;
+    line-height: 1;
 }
 .session-side {
     display: flex;
