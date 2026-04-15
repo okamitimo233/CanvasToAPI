@@ -14,6 +14,12 @@
 - 🔧 **支持工具调用**：OpenAI、Gemini 和 Anthropic 接口均支持 Tool Calls (Function Calling)
 - 📊 **可视化控制台**：提供状态页、日志页和在线配置开关，方便观察服务运行状态
 
+## 📚 文档导航
+
+- [贡献指南](CONTRIBUTING.md) - 如何参与项目开发
+- [Git 工作流](WORKFLOW.md) - Git 分支管理和协作流程
+- [API 使用示例](docs/zh/api-examples.md) - 详细的 API 调用示例
+
 ## 🚀 快速开始
 
 ### 💻 直接运行（Windows / macOS / Linux）

@@ -14,6 +14,12 @@ A tool that exposes a Gemini web session as OpenAI API, Gemini API, and Anthropi
 - 🔧 **Tool Calls Support**: OpenAI, Gemini, and Anthropic endpoints support Tool Calls (Function Calling)
 - 📊 **Visual Console**: Includes status, logs, and runtime switches for easier operations
 
+## 📚 Documentation
+
+- [Contributing Guide](CONTRIBUTING.md) - How to contribute to this project
+- [Git Workflow](WORKFLOW.md) - Git branching strategy and collaboration workflow
+- [API Usage Examples](docs/en/api-examples.md) - Detailed API calling examples
+
 ## 🚀 Quick Start
 
 ### 💻 Run Directly (Windows / macOS / Linux)
