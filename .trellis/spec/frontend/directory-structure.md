@@ -24,7 +24,7 @@ ui/
 │   │   └── icons/          # Icon components (Lucide-based)
 │   │       ├── index.js
 │   │       ├── IconHome.vue
-│   │       └── ... (10 icon components)
+│   │       └── ... (43 icon components)
 │   ├── pages/              # Page-level components (routes)
 │   │   ├── StatusPage.vue
 │   │   ├── LoginPage.vue

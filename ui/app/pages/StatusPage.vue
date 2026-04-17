@@ -116,20 +116,11 @@
                 <div class="dashboard-grid">
                     <section class="status-card">
                         <h3 class="card-title">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
+                            <IconActivity
+                                :size="18"
+                                :stroke-width="1.5"
                                 style="margin-right: 8px; vertical-align: text-bottom"
-                            >
-                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                            </svg>
+                            />
                             {{ t("serviceStatus") }}
                             <span
                                 class="dot"
@@ -140,25 +131,7 @@
                         <div class="status-list">
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="margin-right: 6px"
-                                    >
-                                        <path d="M20 8h-2"></path>
-                                        <path d="M20 18h-2"></path>
-                                        <rect x="2" y="4" width="20" height="8" rx="2" ry="2"></rect>
-                                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-                                        <line x1="6" y1="8" x2="6.01" y2="8"></line>
-                                        <line x1="6" y1="18" x2="6.01" y2="18"></line>
-                                    </svg>
+                                    <IconServer :size="14" :stroke-width="1.5" style="margin-right: 6px" />
                                     {{ t("serviceConnection") }} </span
                                 ><span class="value status-text-bold" :class="serviceConnectedClass">{{
                                     serviceConnectedText
@@ -166,20 +139,7 @@
                             </div>
                             <div v-if="state.serviceConnected" class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="margin-right: 6px"
-                                    >
-                                        <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
-                                    </svg>
+                                    <IconCloud :size="14" :stroke-width="1.5" style="margin-right: 6px" />
                                     {{ t("browserConnection") }} </span
                                 ><span class="value status-text-bold" :class="browserConnectedClass">{{
                                     browserConnectedText
@@ -187,23 +147,7 @@
                             </div>
                             <div class="status-item status-item-ws-endpoint">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="margin-right: 6px"
-                                    >
-                                        <path d="M5 9h14"></path>
-                                        <path d="M5 15h14"></path>
-                                        <path d="M8 5v14"></path>
-                                        <path d="M16 5v14"></path>
-                                    </svg>
+                                    <IconColumns :size="14" :stroke-width="1.5" style="margin-right: 6px" />
                                     <span>{{ t("wsEndpointLabel") }}</span> </span
                                 ><span class="value mono value-copy-wrap">
                                     <span
@@ -213,22 +157,7 @@
                                     >
                                         {{ browserWsEndpointText }}
                                         <span class="copy-icon">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="14"
-                                                height="14"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                            >
-                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                <path
-                                                    d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-                                                ></path>
-                                            </svg>
+                                            <IconCopy :size="14" :stroke-width="1.5" />
                                         </span>
                                     </span>
                                 </span>
@@ -237,87 +166,29 @@
                     </section>
                     <section v-if="state.serviceConnected" class="status-card">
                         <h3 class="card-title">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
+                            <IconUsers
+                                :size="18"
+                                :stroke-width="1.5"
                                 style="margin-right: 8px; vertical-align: text-bottom"
-                            >
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
+                            />
                             {{ tf("sessionPoolHeading", "Session Pool") }}
                         </h3>
                         <div class="status-list">
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="margin-right: 6px"
-                                    >
-                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                        <circle cx="8.5" cy="7" r="4"></circle>
-                                        <polyline points="17 11 19 13 23 9"></polyline>
-                                    </svg>
+                                    <IconUserCheck :size="14" :stroke-width="1.5" style="margin-right: 6px" />
                                     {{ tf("activeSessionsLabel", "Active Sessions") }} </span
                                 ><span class="value">{{ activeSessionCount }}</span>
                             </div>
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="margin-right: 6px"
-                                    >
-                                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                                        <polyline points="2 17 12 22 22 17"></polyline>
-                                        <polyline points="2 12 12 17 22 12"></polyline>
-                                    </svg>
+                                    <IconLayers :size="14" :stroke-width="1.5" style="margin-right: 6px" />
                                     {{ tf("totalSessionsLabel", "Total Sessions") }} </span
                                 ><span class="value">{{ sessions.length }}</span>
                             </div>
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="margin-right: 6px"
-                                    >
-                                        <line x1="4" y1="6" x2="20" y2="6"></line>
-                                        <line x1="4" y1="12" x2="20" y2="12"></line>
-                                        <line x1="4" y1="18" x2="20" y2="18"></line>
-                                        <circle cx="9" cy="6" r="2"></circle>
-                                        <circle cx="15" cy="12" r="2"></circle>
-                                        <circle cx="11" cy="18" r="2"></circle>
-                                    </svg>
+                                    <IconSliders :size="14" :stroke-width="1.5" style="margin-right: 6px" />
                                     <span>
                                         {{ tf("selectionStrategyLabel", "Selection Strategy") }}
                                         <EnvVarTooltip env-var="ROUND" doc-section="proxy-config" />
@@ -326,24 +197,7 @@
                             </div>
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="margin-right: 6px"
-                                    >
-                                        <path
-                                            d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"
-                                        ></path>
-                                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                                    </svg>
+                                    <IconAlertTriangle :size="14" :stroke-width="1.5" style="margin-right: 6px" />
                                     <span>
                                         {{ tf("errorThresholdLabel", "Error Threshold") }}
                                         <EnvVarTooltip env-var="SESSION_ERROR_THRESHOLD" doc-section="proxy-config" />
@@ -354,39 +208,21 @@
                     </section>
                     <section v-if="state.serviceConnected" class="status-card">
                         <h3 class="card-title">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
+                            <IconBarChart3
+                                :size="18"
+                                :stroke-width="1.5"
                                 style="margin-right: 8px; vertical-align: text-bottom"
-                            >
-                                <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path>
-                            </svg>
+                            />
                             {{ t("proxySettingsStatus") }}
                         </h3>
                         <div class="status-list">
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
+                                    <IconZap
+                                        :size="14"
+                                        :stroke-width="1.5"
                                         style="margin-right: 6px; vertical-align: middle"
-                                    >
-                                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                                    </svg>
+                                    />
                                     <span>
                                         {{ t("streamingMode") }}
                                         <span class="label-note">({{ t("onlyAppliesWhenStreamingEnabled") }})</span>
@@ -400,25 +236,11 @@
                             </div>
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
+                                    <IconBrain
+                                        :size="14"
+                                        :stroke-width="1.5"
                                         style="margin-right: 6px; vertical-align: middle"
-                                    >
-                                        <path d="M15.5 13a3.5 3.5 0 0 0-3.5 3.5v1a3.5 3.5 0 0 0 7 0v-1.8"></path>
-                                        <path d="M8.5 13a3.5 3.5 0 0 1 3.5 3.5v1a3.5 3.5 0 0 1-7 0v-1.8"></path>
-                                        <path d="M17.5 16a3.5 3.5 0 0 0 0-7h-.5"></path>
-                                        <path d="M19 9.3v-2.8a3.5 3.5 0 0 0-7 0"></path>
-                                        <path d="M6.5 16a3.5 3.5 0 0 1 0-7h.5"></path>
-                                        <path d="M5 9.3v-2.8a3.5 3.5 0 0 1 7 0v10"></path>
-                                    </svg>
+                                    />
                                     <span>
                                         {{ t("forceThinking") }}
                                         <EnvVarTooltip env-var="FORCE_THINKING" doc-section="other-config" />
@@ -431,24 +253,11 @@
                             </div>
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
+                                    <IconGlobe
+                                        :size="14"
+                                        :stroke-width="1.5"
                                         style="margin-right: 6px; vertical-align: middle"
-                                    >
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="2" y1="12" x2="22" y2="12"></line>
-                                        <path
-                                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
-                                        ></path>
-                                    </svg>
+                                    />
                                     <span>
                                         {{ t("forceWebSearch") }}
                                         <EnvVarTooltip env-var="FORCE_WEB_SEARCH" doc-section="other-config" />
@@ -461,21 +270,11 @@
                             </div>
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
+                                    <IconLink
+                                        :size="14"
+                                        :stroke-width="1.5"
                                         style="margin-right: 6px; vertical-align: middle"
-                                    >
-                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                                    </svg>
+                                    />
                                     <span>
                                         {{ t("forceUrlContext") }}
                                         <EnvVarTooltip env-var="FORCE_URL_CONTEXT" doc-section="other-config" />
@@ -488,23 +287,11 @@
                             </div>
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
+                                    <IconRefreshCw
+                                        :size="14"
+                                        :stroke-width="1.5"
                                         style="margin-right: 6px; vertical-align: middle"
-                                    >
-                                        <path d="M3 2v6h6"></path>
-                                        <path d="M21 12A9 9 0 0 0 6 5.3L3 8"></path>
-                                        <path d="M21 22v-6h-6"></path>
-                                        <path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"></path>
-                                    </svg>
+                                    />
                                     <span>
                                         {{ t("maxRetries") }}
                                         <span class="label-note">({{ t("onlyAppliesWhenFakeStreaming") }})</span>
@@ -519,23 +306,11 @@
                     <div class="status-card">
                         <div class="section-header">
                             <h3 class="card-title card-title-tight">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="18"
-                                    height="18"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
+                                <IconUsers
+                                    :size="18"
+                                    :stroke-width="1.5"
                                     style="margin-right: 8px; vertical-align: text-bottom"
-                                >
-                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="9" cy="7" r="4"></circle>
-                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                </svg>
+                                />
                                 {{ tf("browserSessionsHeading", "Browser Sessions") }}
                             </h3>
                             <div class="section-actions">
@@ -621,39 +396,21 @@
                 <div class="dashboard-grid settings-grid">
                     <div class="status-card">
                         <h3 class="card-title">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
+                            <IconInfo
+                                :size="18"
+                                :stroke-width="1.5"
                                 style="margin-right: 8px; vertical-align: text-bottom"
-                            >
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="16" x2="12" y2="12"></line>
-                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                            </svg>
+                            />
                             {{ t("versionInfo") }}
                         </h3>
                         <div class="status-list">
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
+                                    <IconGithub
+                                        :size="14"
+                                        :stroke-width="1.5"
                                         style="margin-right: 6px; vertical-align: middle"
-                                    >
-                                        <path
-                                            d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385c.6.105.825-.255.825-.57c0-.285-.015-1.23-.015-2.235c-3.015.555-3.795-.735-4.035-1.41c-.135-.345-.72-1.41-1.23-1.695c-.42-.225-1.02-.78-.015-.795c.945-.015 1.62.87 1.845 1.23c1.08 1.815 2.805 1.305 3.495.99c.105-.78.42-1.305.765-1.605c-2.67-.3-5.46-1.335-5.46-5.925c0-1.305.465-2.385 1.23-3.225c-.12-.3-.54-1.53.12-3.18c0 0 1.005-.315 3.3 1.23c.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23c.66 1.65.24 2.88.12 3.18c.765.84 1.23 1.905 1.23 3.225c0 4.605-2.805 5.625-5.475 5.925c.435.375.81 1.095.81 2.22c0 1.605-.015 2.895-.015 3.3c0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"
-                                        />
-                                    </svg>
+                                    />
                                     GitHub {{ t("repo") }}
                                 </span>
                                 <a href="https://github.com/iBUHub/CanvasToAPI" target="_blank" class="repo-link">
@@ -662,65 +419,29 @@
                             </div>
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
+                                    <IconBookmark
+                                        :size="14"
+                                        :stroke-width="1.5"
                                         style="margin-right: 6px; vertical-align: middle"
-                                    >
-                                        <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
-                                    </svg>
+                                    />
                                     {{ t("currentVersion") }}
                                 </span>
                                 <span class="value">
                                     <span class="clickable-version" :title="t('copy')" @click="copyAppVersion">
                                         {{ appVersion }}
                                         <span class="copy-icon">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="14"
-                                                height="14"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                            >
-                                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                                <path
-                                                    d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-                                                ></path>
-                                            </svg>
+                                            <IconCopy :size="14" :stroke-width="1.5" />
                                         </span>
                                     </span>
                                 </span>
                             </div>
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
+                                    <IconClock
+                                        :size="14"
+                                        :stroke-width="1.5"
                                         style="margin-right: 6px; vertical-align: middle"
-                                    >
-                                        <circle cx="12" cy="13" r="8"></circle>
-                                        <path d="M12 9v4l2 2"></path>
-                                        <path d="m5 3 2 2"></path>
-                                        <path d="m19 3-2 2"></path>
-                                    </svg>
+                                    />
                                     <span>
                                         {{ t("latestVersion") }}
                                         <EnvVarTooltip env-var="CHECK_UPDATE" doc-section="app-config" />
@@ -745,23 +466,7 @@
                                             target="_blank"
                                             style="color: inherit; display: inline-flex"
                                         >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="14"
-                                                height="14"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                            >
-                                                <path
-                                                    d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
-                                                ></path>
-                                                <polyline points="15 3 21 3 21 9"></polyline>
-                                                <line x1="10" y1="14" x2="21" y2="3"></line>
-                                            </svg>
+                                            <IconExternalLink :size="14" :stroke-width="1.5" />
                                         </a>
                                     </span>
                                     <span v-else class="clickable-version" :title="t('viewRelease')">
@@ -778,23 +483,7 @@
                                             target="_blank"
                                             style="color: inherit; display: inline-flex"
                                         >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="14"
-                                                height="14"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                            >
-                                                <path
-                                                    d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
-                                                ></path>
-                                                <polyline points="15 3 21 3 21 9"></polyline>
-                                                <line x1="10" y1="14" x2="21" y2="3"></line>
-                                            </svg>
+                                            <IconExternalLink :size="14" :stroke-width="1.5" />
                                         </a>
                                     </span>
                                 </span>
@@ -804,48 +493,17 @@
 
                     <div class="status-card">
                         <h3 class="card-title">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
+                            <IconFileText
+                                :size="18"
+                                :stroke-width="1.5"
                                 style="margin-right: 8px; vertical-align: text-bottom"
-                            >
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                                <polyline points="10 9 9 9 8 9"></polyline>
-                            </svg>
+                            />
                             {{ t("log") }}
                         </h3>
                         <div class="status-list">
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="margin-right: 6px"
-                                    >
-                                        <line x1="8" y1="6" x2="21" y2="6"></line>
-                                        <line x1="8" y1="12" x2="21" y2="12"></line>
-                                        <line x1="8" y1="18" x2="21" y2="18"></line>
-                                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                                    </svg>
+                                    <IconList :size="14" :stroke-width="1.5" style="margin-right: 6px" />
                                     <span>
                                         {{ t("logLevel") }}
                                         <EnvVarTooltip env-var="LOG_LEVEL" doc-section="app-config" />
@@ -862,22 +520,7 @@
                             </div>
                             <div class="status-item">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="margin-right: 6px"
-                                    >
-                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                                        <line x1="8" y1="21" x2="16" y2="21"></line>
-                                        <line x1="12" y1="17" x2="12" y2="21"></line>
-                                    </svg>
+                                    <IconMonitor :size="14" :stroke-width="1.5" style="margin-right: 6px" />
                                     {{ t("logMaxCount") }}
                                 </span>
                                 <el-input-number
@@ -893,55 +536,17 @@
 
                     <div class="status-card">
                         <h3 class="card-title">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
+                            <IconSun
+                                :size="18"
+                                :stroke-width="1.5"
                                 style="margin-right: 8px; vertical-align: text-bottom"
-                            >
-                                <circle cx="12" cy="12" r="5"></circle>
-                                <line x1="12" y1="1" x2="12" y2="3"></line>
-                                <line x1="12" y1="21" x2="12" y2="23"></line>
-                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                                <line x1="1" y1="12" x2="3" y2="12"></line>
-                                <line x1="21" y1="12" x2="23" y2="12"></line>
-                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                            </svg>
+                            />
                             {{ t("appearance") }}
                         </h3>
                         <div class="status-list">
                             <div class="switch-container">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="margin-right: 6px"
-                                    >
-                                        <circle cx="12" cy="12" r="5"></circle>
-                                        <line x1="12" y1="1" x2="12" y2="3"></line>
-                                        <line x1="12" y1="21" x2="12" y2="23"></line>
-                                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                                        <line x1="1" y1="12" x2="3" y2="12"></line>
-                                        <line x1="21" y1="12" x2="23" y2="12"></line>
-                                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                                    </svg>
+                                    <IconSun :size="14" :stroke-width="1.5" style="margin-right: 6px" />
                                     {{ t("theme") }}
                                 </span>
                                 <el-select :model-value="theme" style="width: 150px" @update:model-value="setTheme">
@@ -952,24 +557,7 @@
                             </div>
                             <div class="switch-container">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="margin-right: 6px"
-                                    >
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="2" y1="12" x2="22" y2="12"></line>
-                                        <path
-                                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
-                                        ></path>
-                                    </svg>
+                                    <IconGlobe :size="14" :stroke-width="1.5" style="margin-right: 6px" />
                                     {{ t("language") }}
                                 </span>
                                 <el-select
@@ -986,39 +574,21 @@
 
                     <div class="status-card">
                         <h3 class="card-title">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
+                            <IconBarChart3
+                                :size="18"
+                                :stroke-width="1.5"
                                 style="margin-right: 8px; vertical-align: text-bottom"
-                            >
-                                <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path>
-                            </svg>
+                            />
                             {{ t("proxySettings") }}
                         </h3>
                         <div class="settings-switches">
                             <div class="switch-container">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
+                                    <IconZap
+                                        :size="14"
+                                        :stroke-width="1.5"
                                         style="margin-right: 6px; vertical-align: middle"
-                                    >
-                                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                                    </svg>
+                                    />
                                     {{ t("streamingMode") }}
                                 </span>
                                 <el-switch
@@ -1032,25 +602,11 @@
                             </div>
                             <div class="switch-container">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
+                                    <IconBrain
+                                        :size="14"
+                                        :stroke-width="1.5"
                                         style="margin-right: 6px; vertical-align: middle"
-                                    >
-                                        <path d="M15.5 13a3.5 3.5 0 0 0-3.5 3.5v1a3.5 3.5 0 0 0 7 0v-1.8"></path>
-                                        <path d="M8.5 13a3.5 3.5 0 0 1 3.5 3.5v1a3.5 3.5 0 0 1-7 0v-1.8"></path>
-                                        <path d="M17.5 16a3.5 3.5 0 0 0 0-7h-.5"></path>
-                                        <path d="M19 9.3v-2.8a3.5 3.5 0 0 0-7 0"></path>
-                                        <path d="M6.5 16a3.5 3.5 0 0 1 0-7h.5"></path>
-                                        <path d="M5 9.3v-2.8a3.5 3.5 0 0 1 7 0v10"></path>
-                                    </svg>
+                                    />
                                     {{ t("forceThinking") }}
                                 </span>
                                 <el-switch
@@ -1064,24 +620,11 @@
                             </div>
                             <div class="switch-container">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
+                                    <IconGlobe
+                                        :size="14"
+                                        :stroke-width="1.5"
                                         style="margin-right: 6px; vertical-align: middle"
-                                    >
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="2" y1="12" x2="22" y2="12"></line>
-                                        <path
-                                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
-                                        ></path>
-                                    </svg>
+                                    />
                                     {{ t("forceWebSearch") }}
                                 </span>
                                 <el-switch
@@ -1095,21 +638,11 @@
                             </div>
                             <div class="switch-container">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
+                                    <IconLink
+                                        :size="14"
+                                        :stroke-width="1.5"
                                         style="margin-right: 6px; vertical-align: middle"
-                                    >
-                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                                    </svg>
+                                    />
                                     {{ t("forceUrlContext") }}
                                 </span>
                                 <el-switch
@@ -1127,25 +660,7 @@
                             </div>
                             <div class="switch-container">
                                 <span class="label">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        style="margin-right: 6px"
-                                    >
-                                        <line x1="4" y1="6" x2="20" y2="6"></line>
-                                        <line x1="4" y1="12" x2="20" y2="12"></line>
-                                        <line x1="4" y1="18" x2="20" y2="18"></line>
-                                        <circle cx="9" cy="6" r="2"></circle>
-                                        <circle cx="15" cy="12" r="2"></circle>
-                                        <circle cx="11" cy="18" r="2"></circle>
-                                    </svg>
+                                    <IconSliders :size="14" :stroke-width="1.5" style="margin-right: 6px" />
                                     {{ tf("selectionStrategyLabel", "Selection Strategy") }}
                                 </span>
                                 <el-select
@@ -1166,21 +681,7 @@
                 <header class="page-header page-header-split">
                     <h1>{{ t("realtimeLogs") }} ({{ state.logCount }})</h1>
                     <button class="btn-icon" :title="t('downloadLogs')" @click="downloadLogs">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
+                        <IconDownload :size="18" :stroke-width="1.5" />
                         <span>{{ t("downloadLogs") }}</span>
                     </button>
                 </header>
@@ -1270,6 +771,33 @@ import EnvVarTooltip from "../components/EnvVarTooltip.vue";
 import I18n from "../utils/i18n";
 import escapeHtml from "../utils/escapeHtml";
 import { useTheme } from "../utils/useTheme";
+import {
+    IconActivity,
+    IconAlertTriangle,
+    IconBarChart3,
+    IconBookmark,
+    IconBrain,
+    IconClock,
+    IconCloud,
+    IconColumns,
+    IconCopy,
+    IconDownload,
+    IconExternalLink,
+    IconFileText,
+    IconGlobe,
+    IconInfo,
+    IconLayers,
+    IconLink,
+    IconList,
+    IconMonitor,
+    IconRefreshCw,
+    IconServer,
+    IconSliders,
+    IconSun,
+    IconUserCheck,
+    IconUsers,
+    IconZap,
+} from "../components/icons";
 
 const router = useRouter();
 const activeTab = ref("home");

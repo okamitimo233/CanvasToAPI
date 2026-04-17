@@ -377,6 +377,91 @@ When migrating from inline SVG icons to Lucide components:
 
 **Bug Reference**: Session 5 - Sidebar active icon showed as solid white block because `.menu-item.active { color: white }` combined with missing `fill: none` caused the icon to fill completely.
 
+### Available Icon Components
+
+The project includes **43 icon components** in `ui/app/components/icons/`:
+
+**Navigation & UI Icons**:
+
+- `IconHome` - Home page navigation
+- `IconSettings` - Settings/configuration
+- `IconFileText` - Documents/logs
+- `IconLanguages` - Language switcher
+- `IconLogOut` - Logout action
+
+**Status & Feedback Icons**:
+
+- `IconActivity` - Activity/service status
+- `IconCheckCircle` - Success state
+- `IconXCircle` - Error state
+- `IconAlertCircle` - Warning/alert
+- `IconAlertTriangle` - Warning triangle
+- `IconCheck` - Checkmark
+- `IconX` - Close/cancel
+
+**Server & Infrastructure Icons**:
+
+- `IconServer` - Server/host
+- `IconCloud` - Cloud/browser connection
+- `IconDatabase` - Database
+- `IconGlobe` - Globe/web/world
+- `IconTerminal` - Terminal/console
+
+**User & Session Icons**:
+
+- `IconUsers` - Users/groups
+- `IconUserCheck` - User verification
+
+**Settings & Controls Icons**:
+
+- `IconSliders` - Sliders/adjustments
+- `IconToggleLeft` - Toggle switch (off)
+- `IconToggleRight` - Toggle switch (on)
+- `IconRefreshCw` - Refresh/reload
+- `IconZap` - Lightning/power
+
+**Data & Charts Icons**:
+
+- `IconLayers` - Stacked layers
+- `IconBarChart3` - Bar chart
+- `IconColumns` - Columns/grid
+
+**UI Actions Icons**:
+
+- `IconCopy` - Copy to clipboard
+- `IconLink` - Link/chain
+- `IconExternalLink` - External link
+- `IconDownload` - Download
+- `IconTrash2` - Delete/remove
+
+**Navigation Controls Icons**:
+
+- `IconChevronDown` - Expand/show more
+- `IconChevronUp` - Collapse/show less
+
+**Information & Status Icons**:
+
+- `IconInfo` - Information
+- `IconBookmark` - Bookmark/version
+- `IconClock` - Time/version check
+- `IconMonitor` - Monitor/display
+- `IconList` - List items
+
+**Appearance Icons**:
+
+- `IconSun` - Sun/light mode
+- `IconCircleDot` - Circle indicator
+
+**Brand Icons**:
+
+- `IconGithub` - GitHub logo (filled variant, custom SVG)
+
+**Usage Example**:
+
+```javascript
+import { IconHome, IconServer, IconGlobe, IconCheckCircle } from "@/components/icons";
+```
+
 ---
 
 ## Styling Patterns
