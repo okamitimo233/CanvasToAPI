@@ -11,6 +11,7 @@ import 'element-plus/dist/index.css';
 import App from './/App.vue';
 import router from './router';
 import I18n from './utils/i18n';
+import { loadFonts } from './utils/loadFonts';
 import 'element-plus/theme-chalk/dark/css-vars.css';
 import './/styles/global.less';
 
@@ -18,6 +19,16 @@ const app = createApp(App);
 app.use(router);
 app.use(ElementPlus);
 
-I18n.init().finally(() => {
-    app.mount('#app');
-});
+// Load fonts before initializing the app
+loadFonts()
+    .then(() => {
+        console.log('[Design System] Google Fonts loaded successfully');
+    })
+    .catch(err => {
+        console.warn('[Design System] Failed to load Google Fonts, falling back to system fonts', err);
+    })
+    .finally(() => {
+        I18n.init().finally(() => {
+            app.mount('#app');
+        });
+    });

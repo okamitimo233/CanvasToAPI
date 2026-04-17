@@ -8,51 +8,79 @@
 // ========== CSS Variables System ==========
 :root {
     // Light theme (Default)
+
+    // ========== Brand Colors (New Design System) ==========
+    --color-brand-primary: #18181b;
+    --color-brand-secondary: #3f3f46;
+    --color-brand-cta: #ec4899;
+
+    // ========== Background Colors (New Design System) ==========
+    --bg-base: #fafafa;
+    --bg-elevated: #fff;
+    --bg-surface: #f4f4f5;
+
+    // ========== Text Colors (New Design System) ==========
+    --text-primary: #09090b;
+    --text-secondary: #3f3f46;
+    --text-muted: #71717a;
+
+    // ========== Status Colors (Enhanced) ==========
     --color-primary: #007bff;
     --color-primary-rgb: 0, 123, 255;
     --color-primary-hover: #0069d9;
     --color-primary-active: #0056b3;
-    --color-success: #2ecc71;
-    --color-success-rgb: 46, 204, 113;
-    --color-warning: #f39c12;
-    --color-warning-rgb: 243, 156, 18;
-    --color-error: #e74c3c;
-    --color-error-rgb: 231, 76, 60;
+    --color-success: #22c55e;
+    --color-success-rgb: 34, 197, 94;
+    --color-warning: #f97316;
+    --color-warning-rgb: 249, 115, 22;
+    --color-error: #ef4444;
+    --color-error-rgb: 239, 68, 68;
+
+    // ========== Background Colors (Legacy - for backward compatibility) ==========
     --bg-body: #f0f2f5;
     --bg-card: #fff;
-    --bg-list-item-hover: #e1e6eb; // darken #f0f2f5 by ~3%
-    --text-primary: #333;
-    --text-secondary: #666;
+    --bg-list-item-hover: #e1e6eb;
+
+    // ========== Text Colors (Legacy) ==========
+    --text-on-primary: #fff;
+
+    // ========== Border Colors ==========
     --border-color: #ccc;
     --border-light: #eee;
 
-    // Affix
+    // ========== Affix ==========
     --affix-bg: rgba(255, 255, 255, 0.95);
     --affix-border: rgba(0, 0, 0, 0.1);
     --affix-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-
-    // Text on primary
-    --text-on-primary: #fff;
 }
 
 [data-theme="dark"] {
     // Dark theme overrides
+
+    // ========== Brand Colors (Dark Mode) ==========
+    --color-brand-primary: #fafafa;
+    --color-brand-secondary: #d4d4d8;
+    --color-brand-cta: #ec4899;
+
+    // ========== Background Colors (Dark Mode) ==========
+    --bg-base: #09090b;
+    --bg-elevated: #18181b;
+    --bg-surface: #27272a;
     --bg-body: #1a1a1a;
     --bg-card: #242424;
-    --bg-list-item-hover: #2a2a2a; // slightly lighter than #1a1a1a
-    --text-primary: #f0f0f0;
-    --text-secondary: #aaa;
-    --border-color: #444;
-    --border-light: #333;
+    --bg-list-item-hover: #2a2a2a;
 
-    // Adjust brand colors for dark mode if needed
+    // ========== Text Colors (Dark Mode) ==========
+    --text-primary: #fafafa;
+    --text-secondary: #d4d4d8;
+    --text-muted: #a1a1aa;
+
+    // ========== Status Colors (Dark Mode Adjustments) ==========
     --color-primary: #339aff;
     --color-primary-rgb: 51, 154, 255;
+    --text-on-primary: #fff;
 
-    // Ensure sufficient contrast on potentially lighter primary in dark mode
-    --text-on-primary: #fff; // Can be changed to #000 if primary becomes too light
-
-    // Affix
+    // ========== Affix (Dark Mode) ==========
     --affix-bg: rgba(60, 60, 60, 0.95);
     --affix-border: rgba(255, 255, 255, 0.15);
     --affix-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
@@ -88,6 +116,10 @@
 @font-size-base: 1em;
 @font-size-small: 0.9em;
 @font-size-large: 1.1em;
+
+// ========== Typography (New Design System) ==========
+@font-heading: "Bodoni Moda", serif;
+@font-body: "Jost", sans-serif;
 
 // ========== Spacing ==========
 @spacing-xs: 8px;

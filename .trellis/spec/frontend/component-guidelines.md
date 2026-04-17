@@ -202,6 +202,160 @@ Use slots for flexible content:
 
 ---
 
+## Icon Components
+
+### Lucide Icons Library
+
+Icon components are thin wrappers around Lucide Icons (`lucide-vue-next`), providing a consistent API and reusable interface across the application.
+
+**Location**: `ui/app/components/icons/`
+
+**Pattern**: Wrapper components with customizable props
+
+### Icon Component Structure
+
+Each icon component follows this pattern:
+
+```vue
+<!--
+@file IconHome.vue
+@brief Home icon component wrapper
+@author Team
+-->
+<script setup>
+import { Home } from "lucide-vue-next";
+
+const props = defineProps({
+  size: {
+    type: Number,
+    default: 24,
+  },
+  color: {
+    type: String,
+    default: "currentColor",
+  },
+  strokeWidth: {
+    type: Number,
+    default: 1.5,
+  },
+});
+</script>
+
+<template>
+  <Home :size="size" :color="color" :stroke-width="strokeWidth" />
+</template>
+```
+
+**Examples**:
+
+- `ui/app/components/icons/IconHome.vue` - Home icon
+- `ui/app/components/icons/IconSettings.vue` - Settings icon
+- `ui/app/components/icons/IconCheckCircle.vue` - Success status icon
+
+### Props Convention
+
+All icon components accept three props:
+
+| Prop          | Type   | Default          | Description                                  |
+| ------------- | ------ | ---------------- | -------------------------------------------- |
+| `size`        | Number | `24`             | Icon size in pixels (viewBox is 24x24)       |
+| `color`       | String | `"currentColor"` | Icon color (inherits from parent text color) |
+| `strokeWidth` | Number | `1.5`            | Stroke width (1.5-2.0 for clarity)           |
+
+### Usage Pattern
+
+```vue
+<script setup>
+import IconHome from "@/components/icons/IconHome.vue";
+import IconSettings from "@/components/icons/IconSettings.vue";
+</script>
+
+<template>
+  <!-- Default usage -->
+  <icon-home />
+
+  <!-- Custom size and color -->
+  <icon-settings :size="32" color="#EC4899" :stroke-width="2" />
+
+  <!-- Inherit color from parent -->
+  <span class="status-icon">
+    <icon-check-circle :size="20" />
+  </span>
+</template>
+
+<style scoped>
+.status-icon {
+  color: var(--color-success); /* Icon inherits this color */
+}
+</style>
+```
+
+### Icon Index File
+
+All icons are exported from `ui/app/components/icons/index.js` for convenient importing:
+
+```javascript
+// ui/app/components/icons/index.js
+export { default as IconHome } from "./IconHome.vue";
+export { default as IconSettings } from "./IconSettings.vue";
+// ... more icons
+```
+
+**Usage**:
+
+```javascript
+import { IconHome, IconSettings, IconLogOut } from "@/components/icons";
+```
+
+### When to Create New Icon Components
+
+Create a new icon component when:
+
+- The icon is used in multiple places
+- The icon needs consistent styling across the app
+- You want to encapsulate Lucide implementation details
+
+**Don't create icon components for**:
+
+- One-time-use icons (use Lucide directly)
+- Icons that need highly customized rendering
+
+### Replacing Inline SVG Icons
+
+When migrating from inline SVG icons to Lucide components:
+
+**Before** (inline SVG):
+
+```vue
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+>
+  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+  <polyline points="9 22 9 12 15 12 15 22" />
+</svg>
+```
+
+**After** (Lucide component):
+
+```vue
+<icon-home :size="24" :stroke-width="2" />
+```
+
+**Benefits**:
+
+- Cleaner template code
+- Consistent icon styling
+- Easier maintenance
+- Smaller component files
+
+---
+
 ## Styling Patterns
 
 ### Scoped Styles

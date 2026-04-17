@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": "ui/app/styles/variables.less", "reason": "Current CSS variable system and theming architecture"}
+{"file": "ui/app/styles/global.less", "reason": "Global styles and reset patterns"}
+{"file": "ui/app/utils/useTheme.js", "reason": "Theme management composable"}
+{"file": "ui/app/utils/i18n.js", "reason": "Internationalization pattern"}
+{"file": "ui/app/pages/LoginPage.vue", "reason": "Vue 3 component example"}

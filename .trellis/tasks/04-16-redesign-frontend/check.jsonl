@@ -1,0 +1,6 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": "ui/app/styles/variables.less", "reason": "Verify new variables follow existing patterns"}
+{"file": "ui/app/styles/global.less", "reason": "Check global style consistency"}
+{"file": "ui/app/utils/useTheme.js", "reason": "Verify theme compatibility"}
+{"file": "package.json", "reason": "Verify dependency additions"}

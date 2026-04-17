@@ -19,7 +19,12 @@ ui/
 │   ├── index.js            # Vue app entry point
 │   ├── App.vue             # Root component
 │   ├── components/         # Reusable UI components
-│   │   └── EnvVarTooltip.vue
+│   │   ├── EnvVarTooltip.vue
+│   │   ├── DesignSystemDemo.vue
+│   │   └── icons/          # Icon components (Lucide-based)
+│   │       ├── index.js
+│   │       ├── IconHome.vue
+│   │       └── ... (10 icon components)
 │   ├── pages/              # Page-level components (routes)
 │   │   ├── StatusPage.vue
 │   │   ├── LoginPage.vue
