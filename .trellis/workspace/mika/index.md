@@ -6,7 +6,7 @@
 
 ## Statistics
 
-- **Total Sessions**: 3
+- **Total Sessions**: 4
 - **Active File**: journal-1.md
 - **First Session**: 2026-04-15
 - **Last Active**: 2026-04-17
@@ -15,11 +15,12 @@
 
 ## Session History
 
-| Session | Date       | Title                               | Branch | Commit  |
-| ------- | ---------- | ----------------------------------- | ------ | ------- |
-| 3       | 2026-04-17 | PR1 - 设计系统基础实施              | main   | 16c8f9f |
-| 2       | 2026-04-16 | 前端重设计需求发现（Brainstorming） | main   | -       |
-| 1       | 2026-04-15 | Bootstrap development guidelines    | main   | 2905892 |
+| Session | Date       | Title                                        | Branch | Commit           |
+| ------- | ---------- | -------------------------------------------- | ------ | ---------------- |
+| 4       | 2026-04-17 | PR2 Login Page Redesign & Design System Docs | main   | 94cfb81, 88deff9 |
+| 3       | 2026-04-17 | PR1 - 设计系统基础实施                       | main   | 16c8f9f          |
+| 2       | 2026-04-16 | 前端重设计需求发现（Brainstorming）          | main   | -                |
+| 1       | 2026-04-15 | Bootstrap development guidelines             | main   | 2905892          |
 
 ---
 
@@ -27,7 +28,7 @@
 
 | File         | Lines | Sessions | Date Range               |
 | ------------ | ----- | -------- | ------------------------ |
-| journal-1.md | 362   | 3        | 2026-04-15 to 2026-04-17 |
+| journal-1.md | 482   | 4        | 2026-04-15 to 2026-04-17 |
 
 ---
 
