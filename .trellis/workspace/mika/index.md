@@ -6,7 +6,7 @@
 
 ## Statistics
 
-- **Total Sessions**: 4
+- **Total Sessions**: 5
 - **Active File**: journal-1.md
 - **First Session**: 2026-04-15
 - **Last Active**: 2026-04-17
@@ -17,6 +17,7 @@
 
 | Session | Date       | Title                                        | Branch | Commit           |
 | ------- | ---------- | -------------------------------------------- | ------ | ---------------- |
+| 5       | 2026-04-17 | Fix SVG fill bug in sidebar icons            | main   | 8f27a2c          |
 | 4       | 2026-04-17 | PR2 Login Page Redesign & Design System Docs | main   | 94cfb81, 88deff9 |
 | 3       | 2026-04-17 | PR1 - 设计系统基础实施                       | main   | 16c8f9f          |
 | 2       | 2026-04-16 | 前端重设计需求发现（Brainstorming）          | main   | -                |
@@ -28,15 +29,15 @@
 
 | File         | Lines | Sessions | Date Range               |
 | ------------ | ----- | -------- | ------------------------ |
-| journal-1.md | 482   | 4        | 2026-04-15 to 2026-04-17 |
+| journal-1.md | 644   | 5        | 2026-04-15 to 2026-04-17 |
 
 ---
 
 ## Active Tasks
 
-| Priority | Task                 | Status   | Started    |
-| -------- | -------------------- | -------- | ---------- |
-| P2       | 重新设计网页前端界面 | planning | 2026-04-16 |
+| Priority | Task                 | Status      | Started    |
+| -------- | -------------------- | ----------- | ---------- |
+| P2       | 重新设计网页前端界面 | in_progress | 2026-04-16 |
 
 ---
 

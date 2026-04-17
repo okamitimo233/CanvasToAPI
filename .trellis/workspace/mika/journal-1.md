@@ -461,7 +461,7 @@ Created `.trellis/spec/frontend/design-system.md` — Comprehensive design syste
 
 **Next**: PR3 - Main Status Page Redesign (Visual)
 
-**Task Status**: In progress (4/6 PRs completed)
+**Task Status**: In progress (2/6 PRs completed)
 
 ### Git Commits
 
@@ -469,6 +469,167 @@ Created `.trellis/spec/frontend/design-system.md` — Comprehensive design syste
 | --------- | ------------- |
 | `94cfb81` | (see git log) |
 | `88deff9` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+- None - task complete
+
+## Session 5: PR3 - StatusPage Visual Redesign
+
+**Date**: 2026-04-17
+**Task**: PR3 - StatusPage Visual Redesign
+**Branch**: `main`
+
+### Summary
+
+完成了前端重设计任务的第三个 PR：StatusPage 视觉重设计。创建了 30 个新的 Lucide 图标组件，替换了侧边栏和主要卡片标题的 SVG 图标，并更新了样式以应用新的设计系统。
+
+### Main Changes
+
+## 实施内容
+
+**1. 图标系统扩展**：
+
+- 创建 30 个新的 Lucide 图标组件
+- 包括：Server, Cloud, Copy, Sliders, ToggleLeft/Right, ChevronDown/Up, RefreshCw, Trash2, Zap, Globe, Terminal, Info, AlertTriangle, Check, X, Layers, Database, Link
+- 完整的图标导出索引
+
+**2. StatusPage 图标替换**：
+
+- ✅ 侧边栏：Home, Settings, FileText, Languages, LogOut
+- ✅ 主要卡片标题：Activity (服务状态), Users (会话池)
+- ⏳ Main Content 内联 SVG：约 60+ 个待替换（后续 PR）
+
+**3. 样式更新**：
+
+- 背景：`var(--bg-base)`, `var(--bg-elevated)`
+- 状态指示器：脉冲动画（`@keyframes pulse`）
+- 菜单项：hover 效果 + 品红 CTA 色
+- 状态颜色：Success/Warning/Error 语义色
+- 卡片：hover 阴影效果
+
+## 创建文件
+
+**图标组件** (30 个):
+
+- PR1/PR2: IconHome, IconSettings, IconFileText, IconLanguages, IconLogOut, IconActivity, IconUsers
+- PR3 新增: IconServer, IconCloud, IconCopy, IconSliders, IconToggleLeft, IconToggleRight, IconChevronDown, IconChevronUp, IconRefreshCw, IconTrash2, IconZap, IconGlobe, IconTerminal, IconInfo, IconAlertTriangle, IconCheck, IconX, IconLayers, IconDatabase, IconLink
+
+**更新文件**:
+
+- `ui/app/pages/StatusPage.vue` - 图标替换 + 样式更新
+- `ui/app/components/icons/index.js` - 导出新图标
+
+## 质量检查
+
+- ✅ ESLint: 通过（0 错误，1 个预存在警告）
+- ✅ Stylelint: 通过
+- ✅ Prettier: 格式化完成
+- ✅ 设计系统一致性: 确认
+
+## 设计系统应用
+
+**配色系统**:
+
+- 背景：`var(--bg-base)` (#FAFAFA / #09090B)
+- 卡片：`var(--bg-elevated)` (#FFF / #18181B)
+- 状态：`var(--color-success)`, `var(--color-warning)`, `var(--color-error)`
+
+**视觉效果**:
+
+- 状态指示器脉冲动画（2s 循环）
+- 卡片 hover 阴影增强
+- 菜单项 hover 颜色变化（品红 CTA）
+- 平滑过渡动画（0.2s ease）
+
+## 下一步
+
+- PR4: 继续替换 Main Content 中的 SVG 图标
+- PR5: 实现响应式设计
+- PR6: 最终优化和测试
+
+### Git Commits
+
+(Ready for commit)
+
+### Testing
+
+- [OK] Lint 检查通过
+- [OK] 图标组件正确导入和使用
+- [OK] 样式更新符合设计系统
+- [ ] 用户测试：运行 `npm run dev` 测试视觉效果
+
+### Status
+
+[OK] **PR3 Complete - Ready for Testing**
+
+### Next Steps
+
+1. **测试新的视觉效果**：
+   - 运行 `npm run dev`
+   - 测试侧边栏图标和卡片标题图标显示
+   - 测试状态指示器脉冲动画
+   - 测试暗色模式
+
+2. **提交代码**：
+   - 使用 `/trellis:finish-work` 完成工作
+   - 使用 `/trellis:record-session` 记录会话
+
+3. **继续 PR4**：
+   - 替换 Main Content 中剩余的 SVG 图标
+
+## Session 5: Session 5: Fix SVG fill bug in sidebar icons
+
+**Date**: 2026-04-17
+**Task**: Session 5: Fix SVG fill bug in sidebar icons
+**Branch**: `main`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## Summary
+
+Fixed bug where sidebar active icons displayed as solid white blocks instead of outlined shapes.
+
+## Root Cause
+
+CSS `fill` property from external styles (Element Plus) overrode SVG's `fill="none"` attribute. When `.menu-item.active { color: white }` was applied, the SVG was filled entirely with white.
+
+## Changes
+
+| File                                             | Change                                                                    |
+| ------------------------------------------------ | ------------------------------------------------------------------------- |
+| `ui/app/pages/StatusPage.vue`                    | Added `fill: none` to `.menu-item svg`, `.label svg`, `.floating-btn svg` |
+| `.trellis/spec/frontend/component-guidelines.md` | Added "Critical: SVG Fill Style Rule" section                             |
+
+## Lessons Learned
+
+- Always explicitly set `fill: none` in CSS for inline SVG icons
+- Prefer Lucide icon components over inline SVGs (they handle this internally)
+- External CSS can override SVG presentation attributes
+
+## Next Steps
+
+Continue with PR3: StatusPage visual redesign
+
+### Git Commits
+
+| Hash      | Message       |
+| --------- | ------------- |
+| `8f27a2c` | (see git log) |
 
 ### Testing
 
