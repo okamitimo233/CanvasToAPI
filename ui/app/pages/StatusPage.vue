@@ -1824,6 +1824,9 @@ watchEffect(() => {
     color: @text-on-primary;
     box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
 }
+.menu-item svg {
+    fill: none;
+}
 .menu-item.logout-button:hover {
     color: @error-color;
     background: rgba(var(--color-error-rgb), 0.1);
@@ -1976,6 +1979,7 @@ watchEffect(() => {
 }
 .label svg {
     flex-shrink: 0;
+    fill: none;
     transform: translateY(1px);
 }
 .label-note {
@@ -2291,6 +2295,7 @@ watchEffect(() => {
     display: block;
     width: 24px;
     height: 24px;
+    fill: none;
     transition: transform @transition-normal;
 }
 .floating-btn.secondary-btn {

@@ -354,6 +354,29 @@ When migrating from inline SVG icons to Lucide components:
 - Easier maintenance
 - Smaller component files
 
+### Critical: SVG Fill Style Rule
+
+**Problem**: When using inline SVG icons, CSS `fill` property can override the SVG's `fill="none"` attribute. This causes icons to appear as solid color blocks instead of outlined shapes.
+
+**Root Cause**: External CSS (e.g., Element Plus global styles) may set `svg { fill: currentColor }`, which fills the entire SVG shape with the current text color.
+
+**Solution**: Always explicitly set `fill: none` in CSS for SVG icons:
+
+```less
+// Required for all inline SVG icons
+.menu-item svg,
+.label svg,
+.floating-btn svg {
+  fill: none;
+}
+```
+
+**Why Lucide Icons don't have this issue**: Lucide components internally set `fill: "none"` as a default attribute, which CSS respects. Inline SVGs rely on the `fill` attribute in markup, which CSS can override.
+
+**Best Practice**: Prefer Lucide icon components over inline SVGs to avoid this issue entirely. If you must use inline SVGs, always add `fill: none` to the CSS.
+
+**Bug Reference**: Session 5 - Sidebar active icon showed as solid white block because `.menu-item.active { color: white }` combined with missing `fill: none` caused the icon to fill completely.
+
 ---
 
 ## Styling Patterns
