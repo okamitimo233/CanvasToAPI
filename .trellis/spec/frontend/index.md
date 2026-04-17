@@ -12,14 +12,15 @@ This directory contains guidelines for frontend development. Fill in each file w
 
 ## Guidelines Index
 
-| Guide                                             | Description                             | Status  |
-| ------------------------------------------------- | --------------------------------------- | ------- |
-| [Directory Structure](./directory-structure.md)   | Module organization and file layout     | To fill |
-| [Component Guidelines](./component-guidelines.md) | Component patterns, props, composition  | To fill |
-| [Hook Guidelines](./hook-guidelines.md)           | Custom hooks, data fetching patterns    | To fill |
-| [State Management](./state-management.md)         | Local state, global state, server state | To fill |
-| [Quality Guidelines](./quality-guidelines.md)     | Code standards, forbidden patterns      | To fill |
-| [Type Safety](./type-safety.md)                   | Type patterns, validation               | To fill |
+| Guide                                             | Description                              | Status   |
+| ------------------------------------------------- | ---------------------------------------- | -------- |
+| [Design System](./design-system.md)               | Colors, typography, icons, CSS variables | ✅ Ready |
+| [Directory Structure](./directory-structure.md)   | Module organization and file layout      | To fill  |
+| [Component Guidelines](./component-guidelines.md) | Component patterns, props, composition   | To fill  |
+| [Hook Guidelines](./hook-guidelines.md)           | Custom hooks, data fetching patterns     | To fill  |
+| [State Management](./state-management.md)         | Local state, global state, server state  | To fill  |
+| [Quality Guidelines](./quality-guidelines.md)     | Code standards, forbidden patterns       | To fill  |
+| [Type Safety](./type-safety.md)                   | Type patterns, validation                | To fill  |
 
 ---
 
@@ -37,3 +38,23 @@ The goal is to help AI assistants and new team members understand how YOUR proje
 ---
 
 **Language**: All documentation should be written in **English**.
+
+---
+
+## Pre-Development Checklist
+
+Before starting frontend development, read these documents:
+
+### New to the project?
+
+1. ✅ [Design System](./design-system.md) — **MUST READ** before any UI work
+   - Colors, typography, icons, CSS variables
+   - Design philosophy and best practices
+
+2. ✅ [Directory Structure](./directory-structure.md) — Understand project organization
+3. ✅ [Component Guidelines](./component-guidelines.md) — Component patterns and conventions
+
+### Working on existing code?
+
+1. ✅ [Design System](./design-system.md) — Ensure new code follows design system
+2. ✅ Check relevant guidelines for your task (hooks, state management, etc.)
