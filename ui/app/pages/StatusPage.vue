@@ -7,7 +7,28 @@
 
 <template>
     <div class="main-layout">
-        <aside class="sidebar">
+        <!-- Mobile Header -->
+        <header class="mobile-header">
+            <button class="hamburger-button" :title="t('menu')" @click="mobileMenuOpen = true">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+            </button>
+            <h1 class="mobile-title">{{ t("statusHeading") }}</h1>
+        </header>
+
+        <!-- Desktop Sidebar -->
+        <aside class="sidebar desktop-only">
             <div class="sidebar-menu">
                 <button
                     class="menu-item"
@@ -107,6 +128,101 @@
                 </button>
             </div>
         </aside>
+
+        <!-- Mobile Drawer Menu -->
+        <el-drawer v-model="mobileMenuOpen" direction="ltr" :title="t('menu')" size="280px" class="mobile-drawer">
+            <div class="drawer-menu">
+                <button class="drawer-menu-item" :class="{ active: activeTab === 'home' }" @click="switchTab('home')">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    <span>{{ t("statusHeading") }}</span>
+                </button>
+                <button
+                    class="drawer-menu-item"
+                    :class="{ active: activeTab === 'settings' }"
+                    @click="switchTab('settings')"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                        />
+                    </svg>
+                    <span>{{ t("actionsPanel") }}</span>
+                </button>
+                <button class="drawer-menu-item" :class="{ active: activeTab === 'logs' }" @click="switchTab('logs')">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                    <span>{{ t("realtimeLogs") }}</span>
+                </button>
+                <div class="drawer-divider"></div>
+                <button class="drawer-menu-item" @click="toggleLanguage">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path d="m5 8 6 6" />
+                        <path d="m4 14 6-6 2-3" />
+                        <path d="M2 5h12" />
+                        <path d="M7 2h1" />
+                        <path d="m22 22-5-10-5 10" />
+                        <path d="M14 18h6" />
+                    </svg>
+                    <span>{{ t("switchLanguage") }}</span>
+                </button>
+                <button class="drawer-menu-item logout-button" @click="handleLogout">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span>{{ t("logout") }}</span>
+                </button>
+            </div>
+        </el-drawer>
 
         <main class="content-area">
             <transition name="fade-slide" mode="out-in">
@@ -700,6 +816,7 @@ import {
 
 const router = useRouter();
 const activeTab = ref("home");
+const mobileMenuOpen = ref(false);
 const sessions = ref([]);
 const updateTimer = ref(null);
 const langVersion = ref(I18n.state.version);
@@ -950,6 +1067,7 @@ const refresh = async () => {
     }
 };
 const switchTab = tabName => {
+    mobileMenuOpen.value = false; // Close mobile menu when switching tabs
     if (activeTab.value === "logs") {
         const logContainer = document.getElementById("log-container");
         if (logContainer) {
@@ -1210,6 +1328,43 @@ watchEffect(() => {
     display: flex;
     min-height: 100vh;
     background: @background-light;
+}
+.mobile-header {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: @background-white;
+    border-bottom: 1px solid @border-light;
+    padding: 0 16px;
+    align-items: center;
+    gap: 16px;
+    z-index: 90;
+}
+.hamburger-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: @text-secondary;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+}
+.hamburger-button:hover {
+    background: @background-light;
+    color: @primary-color;
+}
+.mobile-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: @text-primary;
+    margin: 0;
 }
 .sidebar {
     width: 60px;
@@ -1811,29 +1966,18 @@ watchEffect(() => {
     pointer-events: auto;
     visibility: visible;
 }
-@media (max-width: 768px) {
-    .sidebar {
-        width: 100%;
-        height: 60px;
-        bottom: 0;
-        top: auto;
-        flex-direction: row;
-        border-right: none;
-        border-top: 1px solid @border-light;
-        padding: 0 20px;
+@media (max-width: 767px) {
+    .mobile-header {
+        display: flex;
     }
-    .sidebar-menu {
-        flex-direction: row;
-        width: 100%;
-        justify-content: space-around;
-    }
-    .sidebar-footer {
-        display: none;
+    .desktop-only {
+        display: none !important;
     }
     .content-area {
         margin-left: 0;
+        margin-top: 60px;
         padding: 16px;
-        padding-bottom: 90px;
+        padding-bottom: 32px;
     }
     .dashboard-grid {
         grid-template-columns: 1fr;
@@ -1853,5 +1997,43 @@ watchEffect(() => {
     .mobile-only {
         display: none !important;
     }
+}
+.drawer-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.drawer-menu-item {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: @text-secondary;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    font-weight: 500;
+}
+.drawer-menu-item:hover {
+    background: @background-light;
+    color: @primary-color;
+}
+.drawer-menu-item.active {
+    background: @primary-color;
+    color: @text-on-primary;
+    box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+}
+.drawer-menu-item.logout-button:hover {
+    color: @error-color;
+    background: rgba(var(--color-error-rgb), 0.1);
+}
+.drawer-divider {
+    height: 1px;
+    background: @border-light;
+    margin: 8px 0;
 }
 </style>

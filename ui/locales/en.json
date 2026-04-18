@@ -156,6 +156,7 @@
     "logoutFailed": "Logout failed.",
     "logoutSuccess": "Logout successful.",
     "maxRetries": "Error Retries",
+    "menu": "Menu",
     "networkError": "Network connection failed. Please check your network settings.",
     "newSessionLinkLabel": "Click here to create a new session",
     "newVersionAvailable": "New version available",
