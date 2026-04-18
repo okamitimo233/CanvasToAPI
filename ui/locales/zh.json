@@ -139,6 +139,7 @@
     "latestVersion": "最新版本",
     "light": "亮色",
     "loading": "加载中...",
+    "loadingStatus": "正在加载状态...",
     "log": "日志",
     "loginBtn": "登录",
     "loginErrorInvalidCredentials": "用户名或密码错误！",

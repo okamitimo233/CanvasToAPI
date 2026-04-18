@@ -109,586 +109,491 @@
         </aside>
 
         <main class="content-area">
-            <div v-if="activeTab === 'home'" class="view-container">
-                <header class="page-header">
-                    <h1>{{ t("statusHeading") }}</h1>
-                </header>
-                <div class="dashboard-grid">
-                    <section class="status-card">
-                        <h3 class="card-title">
-                            <IconActivity
-                                :size="18"
-                                :stroke-width="1.5"
-                                style="margin-right: 8px; vertical-align: text-bottom"
-                            />
-                            {{ t("serviceStatus") }}
-                            <span
-                                class="dot"
-                                :class="state.serviceConnected ? 'status-running' : 'status-error'"
-                                style="display: inline-block; vertical-align: middle; margin-left: 8px"
-                            ></span>
-                        </h3>
-                        <div class="status-list">
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconServer :size="14" :stroke-width="1.5" style="margin-right: 6px" />
-                                    {{ t("serviceConnection") }} </span
-                                ><span class="value status-text-bold" :class="serviceConnectedClass">{{
-                                    serviceConnectedText
-                                }}</span>
-                            </div>
-                            <div v-if="state.serviceConnected" class="status-item">
-                                <span class="label">
-                                    <IconCloud :size="14" :stroke-width="1.5" style="margin-right: 6px" />
-                                    {{ t("browserConnection") }} </span
-                                ><span class="value status-text-bold" :class="browserConnectedClass">{{
-                                    browserConnectedText
-                                }}</span>
-                            </div>
-                            <div class="status-item status-item-ws-endpoint">
-                                <span class="label">
-                                    <IconColumns :size="14" :stroke-width="1.5" style="margin-right: 6px" />
-                                    <span>{{ t("wsEndpointLabel") }}</span> </span
-                                ><span class="value mono value-copy-wrap">
-                                    <span
-                                        class="clickable-version clickable-copy-value"
-                                        :title="t('copy')"
-                                        @click="copyBrowserWsEndpoint"
-                                    >
-                                        {{ browserWsEndpointText }}
-                                        <span class="copy-icon">
-                                            <IconCopy :size="14" :stroke-width="1.5" />
-                                        </span>
-                                    </span>
-                                </span>
-                            </div>
-                        </div>
-                    </section>
-                    <section v-if="state.serviceConnected" class="status-card">
-                        <h3 class="card-title">
-                            <IconUsers
-                                :size="18"
-                                :stroke-width="1.5"
-                                style="margin-right: 8px; vertical-align: text-bottom"
-                            />
-                            {{ tf("sessionPoolHeading", "Session Pool") }}
-                        </h3>
-                        <div class="status-list">
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconUserCheck :size="14" :stroke-width="1.5" style="margin-right: 6px" />
-                                    {{ tf("activeSessionsLabel", "Active Sessions") }} </span
-                                ><span class="value">{{ activeSessionCount }}</span>
-                            </div>
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconLayers :size="14" :stroke-width="1.5" style="margin-right: 6px" />
-                                    {{ tf("totalSessionsLabel", "Total Sessions") }} </span
-                                ><span class="value">{{ sessions.length }}</span>
-                            </div>
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconSliders :size="14" :stroke-width="1.5" style="margin-right: 6px" />
-                                    <span>
-                                        {{ tf("selectionStrategyLabel", "Selection Strategy") }}
-                                        <EnvVarTooltip env-var="ROUND" doc-section="proxy-config" />
-                                    </span> </span
-                                ><span class="value mono status-text-bold">{{ selectionStrategyText }}</span>
-                            </div>
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconAlertTriangle :size="14" :stroke-width="1.5" style="margin-right: 6px" />
-                                    <span>
-                                        {{ tf("errorThresholdLabel", "Error Threshold") }}
-                                        <EnvVarTooltip env-var="SESSION_ERROR_THRESHOLD" doc-section="proxy-config" />
-                                    </span> </span
-                                ><span :class="sessionErrorThresholdClass">{{ sessionErrorThresholdText }}</span>
-                            </div>
-                        </div>
-                    </section>
-                    <section v-if="state.serviceConnected" class="status-card">
-                        <h3 class="card-title">
-                            <IconBarChart3
-                                :size="18"
-                                :stroke-width="1.5"
-                                style="margin-right: 8px; vertical-align: text-bottom"
-                            />
-                            {{ t("proxySettingsStatus") }}
-                        </h3>
-                        <div class="status-list">
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconZap
-                                        :size="14"
-                                        :stroke-width="1.5"
-                                        style="margin-right: 6px; vertical-align: middle"
-                                    />
-                                    <span>
-                                        {{ t("streamingMode") }}
-                                        <span class="label-note">({{ t("onlyAppliesWhenStreamingEnabled") }})</span>
-                                        <EnvVarTooltip env-var="STREAMING_MODE" doc-section="other-config" />
-                                    </span> </span
-                                ><span
-                                    class="value status-text-bold"
-                                    :class="state.streamingMode === 'real' ? 'status-ok' : 'status-error'"
-                                    >{{ streamingModeText }}</span
-                                >
-                            </div>
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconBrain
-                                        :size="14"
-                                        :stroke-width="1.5"
-                                        style="margin-right: 6px; vertical-align: middle"
-                                    />
-                                    <span>
-                                        {{ t("forceThinking") }}
-                                        <EnvVarTooltip env-var="FORCE_THINKING" doc-section="other-config" />
-                                    </span> </span
-                                ><span
-                                    class="value status-text-bold"
-                                    :class="state.forceThinking ? 'status-ok' : 'status-error'"
-                                    >{{ state.forceThinking ? t("enabled") : t("disabled") }}</span
-                                >
-                            </div>
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconGlobe
-                                        :size="14"
-                                        :stroke-width="1.5"
-                                        style="margin-right: 6px; vertical-align: middle"
-                                    />
-                                    <span>
-                                        {{ t("forceWebSearch") }}
-                                        <EnvVarTooltip env-var="FORCE_WEB_SEARCH" doc-section="other-config" />
-                                    </span> </span
-                                ><span
-                                    class="value status-text-bold"
-                                    :class="state.forceWebSearch ? 'status-ok' : 'status-error'"
-                                    >{{ state.forceWebSearch ? t("enabled") : t("disabled") }}</span
-                                >
-                            </div>
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconLink
-                                        :size="14"
-                                        :stroke-width="1.5"
-                                        style="margin-right: 6px; vertical-align: middle"
-                                    />
-                                    <span>
-                                        {{ t("forceUrlContext") }}
-                                        <EnvVarTooltip env-var="FORCE_URL_CONTEXT" doc-section="other-config" />
-                                    </span> </span
-                                ><span
-                                    class="value status-text-bold"
-                                    :class="state.forceUrlContext ? 'status-ok' : 'status-error'"
-                                    >{{ state.forceUrlContext ? t("enabled") : t("disabled") }}</span
-                                >
-                            </div>
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconRefreshCw
-                                        :size="14"
-                                        :stroke-width="1.5"
-                                        style="margin-right: 6px; vertical-align: middle"
-                                    />
-                                    <span>
-                                        {{ t("maxRetries") }}
-                                        <span class="label-note">({{ t("onlyAppliesWhenFakeStreaming") }})</span>
-                                        <EnvVarTooltip env-var="MAX_RETRIES" doc-section="proxy-config" />
-                                    </span> </span
-                                ><span class="value">{{ state.maxRetries }}</span>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-                <section v-if="state.serviceConnected" class="full-width-section">
-                    <div class="status-card">
-                        <div class="section-header">
-                            <h3 class="card-title card-title-tight">
-                                <IconUsers
+            <transition name="fade-slide" mode="out-in">
+                <div v-if="activeTab === 'home'" key="home" class="view-container">
+                    <header class="page-header">
+                        <h1>{{ t("statusHeading") }}</h1>
+                    </header>
+                    <div v-if="state.loading" class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>{{ tf("loadingStatus", "Loading status...") }}</p>
+                    </div>
+                    <div v-else class="dashboard-grid">
+                        <!-- System Overview Card -->
+                        <section class="status-card">
+                            <h3 class="card-title">
+                                <IconActivity
                                     :size="18"
                                     :stroke-width="1.5"
                                     style="margin-right: 8px; vertical-align: text-bottom"
                                 />
-                                {{ tf("browserSessionsHeading", "Browser Sessions") }}
+                                {{ t("serviceStatus") }}
+                                <span
+                                    class="dot"
+                                    :class="state.serviceConnected ? 'status-running' : 'status-error'"
+                                    style="display: inline-block; vertical-align: middle; margin-left: 8px"
+                                ></span>
                             </h3>
-                            <div class="section-actions">
-                                <a
-                                    class="status-link"
-                                    :href="state.sharePageUrl || '#'"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    {{ t("newSessionLinkLabel") }}
-                                </a>
+                            <div class="status-list">
+                                <div class="status-item">
+                                    <span class="label">
+                                        <IconServer :size="14" :stroke-width="1.5" style="margin-right: 6px" />
+                                        {{ t("serviceConnection") }} </span
+                                    ><span class="value status-text-bold" :class="serviceConnectedClass">{{
+                                        serviceConnectedText
+                                    }}</span>
+                                </div>
+                                <div v-if="state.serviceConnected" class="status-item">
+                                    <span class="label">
+                                        <IconCloud :size="14" :stroke-width="1.5" style="margin-right: 6px" />
+                                        {{ t("browserConnection") }} </span
+                                    ><span class="value status-text-bold" :class="browserConnectedClass">{{
+                                        browserConnectedText
+                                    }}</span>
+                                </div>
+                                <div v-if="state.serviceConnected" class="status-item">
+                                    <span class="label">
+                                        <IconUserCheck :size="14" :stroke-width="1.5" style="margin-right: 6px" />
+                                        {{ tf("activeSessionsLabel", "Active Sessions") }} </span
+                                    ><span class="value">{{ activeSessionCount }} / {{ sessions.length }}</span>
+                                </div>
+                                <div class="status-item status-item-ws-endpoint">
+                                    <span class="label">
+                                        <IconColumns :size="14" :stroke-width="1.5" style="margin-right: 6px" />
+                                        <span>{{ t("wsEndpointLabel") }}</span> </span
+                                    ><span class="value mono value-copy-wrap">
+                                        <span
+                                            class="clickable-version clickable-copy-value"
+                                            :title="t('copy')"
+                                            @click="copyBrowserWsEndpoint"
+                                        >
+                                            {{ browserWsEndpointText }}
+                                            <span class="copy-icon">
+                                                <IconCopy :size="14" :stroke-width="1.5" />
+                                            </span>
+                                        </span>
+                                    </span>
+                                </div>
+                                <div v-if="state.serviceConnected" class="status-item">
+                                    <span class="label">
+                                        <IconSliders :size="14" :stroke-width="1.5" style="margin-right: 6px" />
+                                        <span>
+                                            {{ tf("selectionStrategyLabel", "Selection Strategy") }}
+                                            <EnvVarTooltip env-var="ROUND" doc-section="proxy-config" />
+                                        </span> </span
+                                    ><span class="value mono status-text-bold">{{ selectionStrategyText }}</span>
+                                </div>
+                                <div v-if="state.serviceConnected" class="status-item">
+                                    <span class="label">
+                                        <IconAlertTriangle :size="14" :stroke-width="1.5" style="margin-right: 6px" />
+                                        <span>
+                                            {{ tf("errorThresholdLabel", "Error Threshold") }}
+                                            <EnvVarTooltip
+                                                env-var="SESSION_ERROR_THRESHOLD"
+                                                doc-section="proxy-config"
+                                            />
+                                        </span> </span
+                                    ><span :class="sessionErrorThresholdClass">{{ sessionErrorThresholdText }}</span>
+                                </div>
                             </div>
-                        </div>
-                        <div v-if="sessions.length === 0" class="empty-state">
-                            {{ tf("noBrowserSessions", "No browser sessions are currently connected.") }}
-                        </div>
-                        <div v-else class="session-list">
-                            <div v-for="session in sessions" :key="session.connectionId" class="session-row">
-                                <div class="session-main">
-                                    <div
-                                        class="session-id"
-                                        :title="`${tf('browserIdentifierLabel', 'Browser Tag')}: ${sessionDisplayDetail(session)}`"
+                        </section>
+                    </div>
+                    <section v-if="state.serviceConnected" class="full-width-section">
+                        <div class="status-card">
+                            <div class="section-header">
+                                <h3 class="card-title card-title-tight">
+                                    <IconUsers
+                                        :size="18"
+                                        :stroke-width="1.5"
+                                        style="margin-right: 8px; vertical-align: text-bottom"
+                                    />
+                                    {{ tf("browserSessionsHeading", "Browser Sessions") }}
+                                </h3>
+                                <div class="section-actions">
+                                    <a
+                                        class="status-link"
+                                        :href="state.sharePageUrl || '#'"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                     >
-                                        {{ sessionDisplayName(session) }}
+                                        {{ t("newSessionLinkLabel") }}
+                                    </a>
+                                </div>
+                            </div>
+                            <div v-if="sessions.length === 0" class="empty-state">
+                                {{ tf("noBrowserSessions", "No browser sessions are currently connected.") }}
+                            </div>
+                            <div v-else class="session-list">
+                                <div v-for="session in sessions" :key="session.connectionId" class="session-row">
+                                    <div class="session-main">
+                                        <div
+                                            class="session-id"
+                                            :title="`${tf('browserIdentifierLabel', 'Browser Tag')}: ${sessionDisplayDetail(session)}`"
+                                        >
+                                            {{ sessionDisplayName(session) }}
+                                        </div>
+                                        <div class="session-meta">
+                                            <span
+                                                >{{ tf("connectedAtLabel", "Connected At") }}:
+                                                {{ formatTime(session.connectedAt) }}</span
+                                            >
+                                            <span class="mono session-ip">
+                                                {{ tf("ipAddressLabel", "IP") }}:
+                                                {{ sessionAddress(session) }}
+                                            </span>
+                                            <span :title="sessionUserAgent(session)">
+                                                {{ tf("browserModelLabel", "Browser / OS") }}:
+                                                {{ sessionBrowser(session) }}
+                                            </span>
+                                            <span
+                                                v-if="sessionLastErrorText(session)"
+                                                class="status-error session-last-error"
+                                            >
+                                                {{ tf("lastErrorLabel", "Last Error") }}:
+                                                {{ sessionLastErrorText(session) }}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div class="session-meta">
-                                        <span
-                                            >{{ tf("connectedAtLabel", "Connected At") }}:
-                                            {{ formatTime(session.connectedAt) }}</span
+                                    <div class="session-side">
+                                        <button
+                                            v-if="session.disabledAt"
+                                            type="button"
+                                            class="session-badge session-badge-button status-error"
+                                            :title="
+                                                tf(
+                                                    'sessionResetActionHint',
+                                                    'Click to mark this session healthy again and clear errors.'
+                                                )
+                                            "
+                                            @click="handleSessionStatusClick(session)"
                                         >
-                                        <span class="mono session-ip">
-                                            {{ tf("ipAddressLabel", "IP") }}:
-                                            {{ sessionAddress(session) }}
+                                            {{ tf("disabledLabel", "Disabled") }}
+                                        </button>
+                                        <span v-else class="session-badge status-ok">
+                                            {{ tf("onlineLabel", "Online") }}
                                         </span>
-                                        <span :title="sessionUserAgent(session)">
-                                            {{ tf("browserModelLabel", "Browser / OS") }}:
-                                            {{ sessionBrowser(session) }}
-                                        </span>
-                                        <span
-                                            v-if="sessionLastErrorText(session)"
-                                            class="status-error session-last-error"
+                                        <span class="mono"
+                                            >{{ tf("usageCount", "Usage Count") }} {{ session.usageCount || 0 }}</span
                                         >
-                                            {{ tf("lastErrorLabel", "Last Error") }}:
-                                            {{ sessionLastErrorText(session) }}
-                                        </span>
+                                        <span class="mono"
+                                            >{{ tf("errorsLabel", "Errors") }} {{ session.failureCount || 0 }}</span
+                                        >
                                     </div>
                                 </div>
-                                <div class="session-side">
-                                    <button
-                                        v-if="session.disabledAt"
-                                        type="button"
-                                        class="session-badge session-badge-button status-error"
-                                        :title="
-                                            tf(
-                                                'sessionResetActionHint',
-                                                'Click to mark this session healthy again and clear errors.'
-                                            )
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div v-else-if="activeTab === 'settings'" key="settings" class="view-container">
+                    <header class="page-header">
+                        <h1>{{ t("settings") }}</h1>
+                    </header>
+                    <div class="dashboard-grid settings-grid">
+                        <div class="status-card">
+                            <h3 class="card-title">
+                                <IconInfo
+                                    :size="18"
+                                    :stroke-width="1.5"
+                                    style="margin-right: 8px; vertical-align: text-bottom"
+                                />
+                                {{ t("versionInfo") }}
+                            </h3>
+                            <div class="status-list">
+                                <div class="status-item">
+                                    <span class="label">
+                                        <IconGithub
+                                            :size="14"
+                                            :stroke-width="1.5"
+                                            style="margin-right: 6px; vertical-align: middle"
+                                        />
+                                        GitHub {{ t("repo") }}
+                                    </span>
+                                    <a href="https://github.com/iBUHub/CanvasToAPI" target="_blank" class="repo-link">
+                                        iBUHub/CanvasToAPI
+                                    </a>
+                                </div>
+                                <div class="status-item">
+                                    <span class="label">
+                                        <IconBookmark
+                                            :size="14"
+                                            :stroke-width="1.5"
+                                            style="margin-right: 6px; vertical-align: middle"
+                                        />
+                                        {{ t("currentVersion") }}
+                                    </span>
+                                    <span class="value">
+                                        <span class="clickable-version" :title="t('copy')" @click="copyAppVersion">
+                                            {{ appVersion }}
+                                            <span class="copy-icon">
+                                                <IconCopy :size="14" :stroke-width="1.5" />
+                                            </span>
+                                        </span>
+                                    </span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="label">
+                                        <IconClock
+                                            :size="14"
+                                            :stroke-width="1.5"
+                                            style="margin-right: 6px; vertical-align: middle"
+                                        />
+                                        <span>
+                                            {{ t("latestVersion") }}
+                                            <EnvVarTooltip env-var="CHECK_UPDATE" doc-section="app-config" />
+                                        </span>
+                                    </span>
+                                    <span class="value">
+                                        <span
+                                            v-if="state.hasUpdate"
+                                            class="clickable-version"
+                                            :title="t('newVersionAvailable')"
+                                        >
+                                            <a
+                                                :href="
+                                                    state.releaseUrl || 'https://github.com/iBUHub/CanvasToAPI/releases'
+                                                "
+                                                target="_blank"
+                                                class="update-link"
+                                            >
+                                                {{ latestVersionFormatted }}
+                                            </a>
+                                            <a
+                                                class="copy-icon"
+                                                :href="
+                                                    state.releaseUrl || 'https://github.com/iBUHub/CanvasToAPI/releases'
+                                                "
+                                                target="_blank"
+                                                style="color: inherit; display: inline-flex"
+                                            >
+                                                <IconExternalLink :size="14" :stroke-width="1.5" />
+                                            </a>
+                                        </span>
+                                        <span v-else class="clickable-version" :title="t('viewRelease')">
+                                            <a
+                                                href="https://github.com/iBUHub/CanvasToAPI/releases"
+                                                target="_blank"
+                                                style="color: inherit; text-decoration: none"
+                                            >
+                                                {{ latestVersionFormatted }}
+                                            </a>
+                                            <a
+                                                class="copy-icon"
+                                                href="https://github.com/iBUHub/CanvasToAPI/releases"
+                                                target="_blank"
+                                                style="color: inherit; display: inline-flex"
+                                            >
+                                                <IconExternalLink :size="14" :stroke-width="1.5" />
+                                            </a>
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="status-card">
+                            <h3 class="card-title">
+                                <IconFileText
+                                    :size="18"
+                                    :stroke-width="1.5"
+                                    style="margin-right: 8px; vertical-align: text-bottom"
+                                />
+                                {{ t("log") }}
+                            </h3>
+                            <div class="status-list">
+                                <div class="status-item">
+                                    <span class="label">
+                                        <IconList :size="14" :stroke-width="1.5" style="margin-right: 6px" />
+                                        <span>
+                                            {{ t("logLevel") }}
+                                            <EnvVarTooltip env-var="LOG_LEVEL" doc-section="app-config" />
+                                        </span>
+                                    </span>
+                                    <el-select
+                                        :model-value="state.debugMode"
+                                        style="width: 120px"
+                                        @change="handleDebugModeChange"
+                                    >
+                                        <el-option :label="t('normal')" :value="false" />
+                                        <el-option :label="t('debug')" :value="true" />
+                                    </el-select>
+                                </div>
+                                <div class="status-item">
+                                    <span class="label">
+                                        <IconMonitor :size="14" :stroke-width="1.5" style="margin-right: 6px" />
+                                        {{ t("logMaxCount") }}
+                                    </span>
+                                    <el-input-number
+                                        :model-value="state.logMaxCount"
+                                        :min="1"
+                                        :max="1000"
+                                        style="width: 120px"
+                                        @change="handleLogMaxCountChange"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="status-card">
+                            <h3 class="card-title">
+                                <IconSun
+                                    :size="18"
+                                    :stroke-width="1.5"
+                                    style="margin-right: 8px; vertical-align: text-bottom"
+                                />
+                                {{ t("appearance") }}
+                            </h3>
+                            <div class="status-list">
+                                <div class="switch-container">
+                                    <span class="label">
+                                        <IconSun :size="14" :stroke-width="1.5" style="margin-right: 6px" />
+                                        {{ t("theme") }}
+                                    </span>
+                                    <el-select :model-value="theme" style="width: 150px" @update:model-value="setTheme">
+                                        <el-option :label="t('followSystem')" value="auto" />
+                                        <el-option :label="t('light')" value="light" />
+                                        <el-option :label="t('dark')" value="dark" />
+                                    </el-select>
+                                </div>
+                                <div class="switch-container">
+                                    <span class="label">
+                                        <IconGlobe :size="14" :stroke-width="1.5" style="margin-right: 6px" />
+                                        {{ t("language") }}
+                                    </span>
+                                    <el-select
+                                        :model-value="state.currentLang"
+                                        style="width: 150px"
+                                        @change="handleLanguageChange"
+                                    >
+                                        <el-option label="中文" value="zh" />
+                                        <el-option label="English" value="en" />
+                                    </el-select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="status-card">
+                            <h3 class="card-title">
+                                <IconBarChart3
+                                    :size="18"
+                                    :stroke-width="1.5"
+                                    style="margin-right: 8px; vertical-align: text-bottom"
+                                />
+                                {{ t("proxySettings") }}
+                            </h3>
+                            <div class="settings-switches">
+                                <div class="switch-container">
+                                    <span class="label">
+                                        <IconZap
+                                            :size="14"
+                                            :stroke-width="1.5"
+                                            style="margin-right: 6px; vertical-align: middle"
+                                        />
+                                        {{ t("streamingMode") }}
+                                    </span>
+                                    <el-switch
+                                        :model-value="state.streamingMode === 'real'"
+                                        inline-prompt
+                                        :width="50"
+                                        :active-text="t('real')"
+                                        :inactive-text="t('fake')"
+                                        @change="handleStreamingModeChange"
+                                    />
+                                </div>
+                                <div class="switch-container">
+                                    <span class="label">
+                                        <IconBrain
+                                            :size="14"
+                                            :stroke-width="1.5"
+                                            style="margin-right: 6px; vertical-align: middle"
+                                        />
+                                        {{ t("forceThinking") }}
+                                    </span>
+                                    <el-switch
+                                        :model-value="state.forceThinking"
+                                        :width="50"
+                                        @change="
+                                            value =>
+                                                handleBooleanSettingChange('force-thinking', value, state.forceThinking)
                                         "
-                                        @click="handleSessionStatusClick(session)"
-                                    >
-                                        {{ tf("disabledLabel", "Disabled") }}
-                                    </button>
-                                    <span v-else class="session-badge status-ok">
-                                        {{ tf("onlineLabel", "Online") }}
+                                    />
+                                </div>
+                                <div class="switch-container">
+                                    <span class="label">
+                                        <IconGlobe
+                                            :size="14"
+                                            :stroke-width="1.5"
+                                            style="margin-right: 6px; vertical-align: middle"
+                                        />
+                                        {{ t("forceWebSearch") }}
                                     </span>
-                                    <span class="mono"
-                                        >{{ tf("usageCount", "Usage Count") }} {{ session.usageCount || 0 }}</span
+                                    <el-switch
+                                        :model-value="state.forceWebSearch"
+                                        :width="50"
+                                        @change="
+                                            value =>
+                                                handleBooleanSettingChange(
+                                                    'force-web-search',
+                                                    value,
+                                                    state.forceWebSearch
+                                                )
+                                        "
+                                    />
+                                </div>
+                                <div class="switch-container">
+                                    <span class="label">
+                                        <IconLink
+                                            :size="14"
+                                            :stroke-width="1.5"
+                                            style="margin-right: 6px; vertical-align: middle"
+                                        />
+                                        {{ t("forceUrlContext") }}
+                                    </span>
+                                    <el-switch
+                                        :model-value="state.forceUrlContext"
+                                        :width="50"
+                                        @change="
+                                            value =>
+                                                handleBooleanSettingChange(
+                                                    'force-url-context',
+                                                    value,
+                                                    state.forceUrlContext
+                                                )
+                                        "
+                                    />
+                                </div>
+                                <div class="switch-container">
+                                    <span class="label">
+                                        <IconSliders :size="14" :stroke-width="1.5" style="margin-right: 6px" />
+                                        {{ tf("selectionStrategyLabel", "Selection Strategy") }}
+                                    </span>
+                                    <el-select
+                                        :model-value="state.selectionStrategy"
+                                        style="width: 150px"
+                                        @change="handleSelectionStrategyChange"
                                     >
-                                    <span class="mono"
-                                        >{{ tf("errorsLabel", "Errors") }} {{ session.failureCount || 0 }}</span
-                                    >
+                                        <el-option :label="t('selectionStrategyRound')" value="round" />
+                                        <el-option :label="t('selectionStrategyRandom')" value="random" />
+                                    </el-select>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </section>
-            </div>
+                </div>
 
-            <div v-else-if="activeTab === 'settings'" class="view-container">
-                <header class="page-header">
-                    <h1>{{ t("settings") }}</h1>
-                </header>
-                <div class="dashboard-grid settings-grid">
-                    <div class="status-card">
-                        <h3 class="card-title">
-                            <IconInfo
-                                :size="18"
-                                :stroke-width="1.5"
-                                style="margin-right: 8px; vertical-align: text-bottom"
-                            />
-                            {{ t("versionInfo") }}
-                        </h3>
-                        <div class="status-list">
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconGithub
-                                        :size="14"
-                                        :stroke-width="1.5"
-                                        style="margin-right: 6px; vertical-align: middle"
-                                    />
-                                    GitHub {{ t("repo") }}
-                                </span>
-                                <a href="https://github.com/iBUHub/CanvasToAPI" target="_blank" class="repo-link">
-                                    iBUHub/CanvasToAPI
-                                </a>
-                            </div>
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconBookmark
-                                        :size="14"
-                                        :stroke-width="1.5"
-                                        style="margin-right: 6px; vertical-align: middle"
-                                    />
-                                    {{ t("currentVersion") }}
-                                </span>
-                                <span class="value">
-                                    <span class="clickable-version" :title="t('copy')" @click="copyAppVersion">
-                                        {{ appVersion }}
-                                        <span class="copy-icon">
-                                            <IconCopy :size="14" :stroke-width="1.5" />
-                                        </span>
-                                    </span>
-                                </span>
-                            </div>
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconClock
-                                        :size="14"
-                                        :stroke-width="1.5"
-                                        style="margin-right: 6px; vertical-align: middle"
-                                    />
-                                    <span>
-                                        {{ t("latestVersion") }}
-                                        <EnvVarTooltip env-var="CHECK_UPDATE" doc-section="app-config" />
-                                    </span>
-                                </span>
-                                <span class="value">
-                                    <span
-                                        v-if="state.hasUpdate"
-                                        class="clickable-version"
-                                        :title="t('newVersionAvailable')"
-                                    >
-                                        <a
-                                            :href="state.releaseUrl || 'https://github.com/iBUHub/CanvasToAPI/releases'"
-                                            target="_blank"
-                                            class="update-link"
-                                        >
-                                            {{ latestVersionFormatted }}
-                                        </a>
-                                        <a
-                                            class="copy-icon"
-                                            :href="state.releaseUrl || 'https://github.com/iBUHub/CanvasToAPI/releases'"
-                                            target="_blank"
-                                            style="color: inherit; display: inline-flex"
-                                        >
-                                            <IconExternalLink :size="14" :stroke-width="1.5" />
-                                        </a>
-                                    </span>
-                                    <span v-else class="clickable-version" :title="t('viewRelease')">
-                                        <a
-                                            href="https://github.com/iBUHub/CanvasToAPI/releases"
-                                            target="_blank"
-                                            style="color: inherit; text-decoration: none"
-                                        >
-                                            {{ latestVersionFormatted }}
-                                        </a>
-                                        <a
-                                            class="copy-icon"
-                                            href="https://github.com/iBUHub/CanvasToAPI/releases"
-                                            target="_blank"
-                                            style="color: inherit; display: inline-flex"
-                                        >
-                                            <IconExternalLink :size="14" :stroke-width="1.5" />
-                                        </a>
-                                    </span>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="status-card">
-                        <h3 class="card-title">
-                            <IconFileText
-                                :size="18"
-                                :stroke-width="1.5"
-                                style="margin-right: 8px; vertical-align: text-bottom"
-                            />
-                            {{ t("log") }}
-                        </h3>
-                        <div class="status-list">
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconList :size="14" :stroke-width="1.5" style="margin-right: 6px" />
-                                    <span>
-                                        {{ t("logLevel") }}
-                                        <EnvVarTooltip env-var="LOG_LEVEL" doc-section="app-config" />
-                                    </span>
-                                </span>
-                                <el-select
-                                    :model-value="state.debugMode"
-                                    style="width: 120px"
-                                    @change="handleDebugModeChange"
-                                >
-                                    <el-option :label="t('normal')" :value="false" />
-                                    <el-option :label="t('debug')" :value="true" />
-                                </el-select>
-                            </div>
-                            <div class="status-item">
-                                <span class="label">
-                                    <IconMonitor :size="14" :stroke-width="1.5" style="margin-right: 6px" />
-                                    {{ t("logMaxCount") }}
-                                </span>
-                                <el-input-number
-                                    :model-value="state.logMaxCount"
-                                    :min="1"
-                                    :max="1000"
-                                    style="width: 120px"
-                                    @change="handleLogMaxCountChange"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="status-card">
-                        <h3 class="card-title">
-                            <IconSun
-                                :size="18"
-                                :stroke-width="1.5"
-                                style="margin-right: 8px; vertical-align: text-bottom"
-                            />
-                            {{ t("appearance") }}
-                        </h3>
-                        <div class="status-list">
-                            <div class="switch-container">
-                                <span class="label">
-                                    <IconSun :size="14" :stroke-width="1.5" style="margin-right: 6px" />
-                                    {{ t("theme") }}
-                                </span>
-                                <el-select :model-value="theme" style="width: 150px" @update:model-value="setTheme">
-                                    <el-option :label="t('followSystem')" value="auto" />
-                                    <el-option :label="t('light')" value="light" />
-                                    <el-option :label="t('dark')" value="dark" />
-                                </el-select>
-                            </div>
-                            <div class="switch-container">
-                                <span class="label">
-                                    <IconGlobe :size="14" :stroke-width="1.5" style="margin-right: 6px" />
-                                    {{ t("language") }}
-                                </span>
-                                <el-select
-                                    :model-value="state.currentLang"
-                                    style="width: 150px"
-                                    @change="handleLanguageChange"
-                                >
-                                    <el-option label="中文" value="zh" />
-                                    <el-option label="English" value="en" />
-                                </el-select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="status-card">
-                        <h3 class="card-title">
-                            <IconBarChart3
-                                :size="18"
-                                :stroke-width="1.5"
-                                style="margin-right: 8px; vertical-align: text-bottom"
-                            />
-                            {{ t("proxySettings") }}
-                        </h3>
-                        <div class="settings-switches">
-                            <div class="switch-container">
-                                <span class="label">
-                                    <IconZap
-                                        :size="14"
-                                        :stroke-width="1.5"
-                                        style="margin-right: 6px; vertical-align: middle"
-                                    />
-                                    {{ t("streamingMode") }}
-                                </span>
-                                <el-switch
-                                    :model-value="state.streamingMode === 'real'"
-                                    inline-prompt
-                                    :width="50"
-                                    :active-text="t('real')"
-                                    :inactive-text="t('fake')"
-                                    @change="handleStreamingModeChange"
-                                />
-                            </div>
-                            <div class="switch-container">
-                                <span class="label">
-                                    <IconBrain
-                                        :size="14"
-                                        :stroke-width="1.5"
-                                        style="margin-right: 6px; vertical-align: middle"
-                                    />
-                                    {{ t("forceThinking") }}
-                                </span>
-                                <el-switch
-                                    :model-value="state.forceThinking"
-                                    :width="50"
-                                    @change="
-                                        value =>
-                                            handleBooleanSettingChange('force-thinking', value, state.forceThinking)
-                                    "
-                                />
-                            </div>
-                            <div class="switch-container">
-                                <span class="label">
-                                    <IconGlobe
-                                        :size="14"
-                                        :stroke-width="1.5"
-                                        style="margin-right: 6px; vertical-align: middle"
-                                    />
-                                    {{ t("forceWebSearch") }}
-                                </span>
-                                <el-switch
-                                    :model-value="state.forceWebSearch"
-                                    :width="50"
-                                    @change="
-                                        value =>
-                                            handleBooleanSettingChange('force-web-search', value, state.forceWebSearch)
-                                    "
-                                />
-                            </div>
-                            <div class="switch-container">
-                                <span class="label">
-                                    <IconLink
-                                        :size="14"
-                                        :stroke-width="1.5"
-                                        style="margin-right: 6px; vertical-align: middle"
-                                    />
-                                    {{ t("forceUrlContext") }}
-                                </span>
-                                <el-switch
-                                    :model-value="state.forceUrlContext"
-                                    :width="50"
-                                    @change="
-                                        value =>
-                                            handleBooleanSettingChange(
-                                                'force-url-context',
-                                                value,
-                                                state.forceUrlContext
-                                            )
-                                    "
-                                />
-                            </div>
-                            <div class="switch-container">
-                                <span class="label">
-                                    <IconSliders :size="14" :stroke-width="1.5" style="margin-right: 6px" />
-                                    {{ tf("selectionStrategyLabel", "Selection Strategy") }}
-                                </span>
-                                <el-select
-                                    :model-value="state.selectionStrategy"
-                                    style="width: 150px"
-                                    @change="handleSelectionStrategyChange"
-                                >
-                                    <el-option :label="t('selectionStrategyRound')" value="round" />
-                                    <el-option :label="t('selectionStrategyRandom')" value="random" />
-                                </el-select>
-                            </div>
-                        </div>
+                <div v-else key="logs" class="view-container logs-view-container">
+                    <header class="page-header page-header-split">
+                        <h1>{{ t("realtimeLogs") }} ({{ state.logCount }})</h1>
+                        <button class="btn-icon" :title="t('downloadLogs')" @click="downloadLogs">
+                            <IconDownload :size="18" :stroke-width="1.5" />
+                            <span>{{ t("downloadLogs") }}</span>
+                        </button>
+                    </header>
+                    <div class="status-card logs-card">
+                        <pre id="log-container" v-html="formattedLogs"></pre>
                     </div>
                 </div>
-            </div>
-
-            <div v-else class="view-container logs-view-container">
-                <header class="page-header page-header-split">
-                    <h1>{{ t("realtimeLogs") }} ({{ state.logCount }})</h1>
-                    <button class="btn-icon" :title="t('downloadLogs')" @click="downloadLogs">
-                        <IconDownload :size="18" :stroke-width="1.5" />
-                        <span>{{ t("downloadLogs") }}</span>
-                    </button>
-                </header>
-                <div class="status-card logs-card">
-                    <pre id="log-container" v-html="formattedLogs"></pre>
-                </div>
-            </div>
+            </transition>
         </main>
 
         <el-affix
@@ -774,9 +679,7 @@ import { useTheme } from "../utils/useTheme";
 import {
     IconActivity,
     IconAlertTriangle,
-    IconBarChart3,
     IconBookmark,
-    IconBrain,
     IconClock,
     IconCloud,
     IconColumns,
@@ -786,17 +689,13 @@ import {
     IconFileText,
     IconGlobe,
     IconInfo,
-    IconLayers,
-    IconLink,
     IconList,
     IconMonitor,
-    IconRefreshCw,
     IconServer,
     IconSliders,
     IconSun,
     IconUserCheck,
     IconUsers,
-    IconZap,
 } from "../components/icons";
 
 const router = useRouter();
@@ -817,6 +716,7 @@ const state = reactive({
     forceWebSearch: false,
     hasUpdate: false,
     latestVersion: "",
+    loading: true,
     logCount: 0,
     logMaxCount: 100,
     logs: "",
@@ -897,7 +797,6 @@ const browserWsEndpointText = computed(() => {
 const selectionStrategyText = computed(() =>
     state.selectionStrategy === "random" ? t("selectionStrategyRandom") : t("selectionStrategyRound")
 );
-const streamingModeText = computed(() => (state.streamingMode === "real" ? t("real") : t("fake")));
 const formatTime = value => (value ? new Date(value).toLocaleString() : "-");
 const sessionAddress = session => session?.meta?.address || session?.meta?.ip || session?.meta?.host || "unknown";
 const sessionClientLabel = session => session?.meta?.clientLabel || "";
@@ -1036,6 +935,7 @@ const refresh = async () => {
         }
         if (!response.ok) throw new Error(`status ${response.status}`);
         applyStatusPayload(await response.json());
+        state.loading = false;
         if (activeTab.value === "logs") {
             nextTick(() => {
                 const updatedLogContainer = document.getElementById("log-container");
@@ -1046,6 +946,7 @@ const refresh = async () => {
         }
     } catch (error) {
         state.serviceConnected = false;
+        state.loading = false;
     }
 };
 const switchTab = tabName => {
@@ -1395,6 +1296,21 @@ watchEffect(() => {
         transform: translateY(0);
     }
 }
+/* Tab transition animations */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition:
+        opacity 0.25s ease,
+        transform 0.25s ease;
+}
+.fade-slide-enter-from {
+    opacity: 0;
+    transform: translateX(20px);
+}
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateX(-20px);
+}
 .dashboard-grid {
     display: grid;
     gap: 24px;
@@ -1741,6 +1657,28 @@ watchEffect(() => {
     text-align: center;
     color: @text-secondary;
     font-size: 0.9rem;
+}
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 24px;
+    color: @text-secondary;
+    gap: 16px;
+}
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid @border-light;
+    border-top-color: @primary-color;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 .logs-view-container {
     height: calc(100vh - 4rem);

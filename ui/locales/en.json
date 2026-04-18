@@ -139,6 +139,7 @@
     "latestVersion": "Latest Version",
     "light": "Light",
     "loading": "Loading...",
+    "loadingStatus": "Loading status...",
     "log": "Logs",
     "loginBtn": "Login",
     "loginErrorInvalidCredentials": "Invalid credentials!",
