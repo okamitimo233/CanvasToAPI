@@ -554,6 +554,51 @@ import "element-plus/dist/index.css";
 app.use(ElementPlus);
 ```
 
+### Mobile Navigation with Drawer
+
+For mobile navigation, use Element Plus `el-drawer` component:
+
+```vue
+<template>
+  <!-- Mobile header with hamburger button -->
+  <header class="mobile-header">
+    <button @click="mobileMenuOpen = true">
+      <!-- Hamburger icon -->
+    </button>
+  </header>
+
+  <!-- Mobile drawer menu -->
+  <el-drawer v-model="mobileMenuOpen" direction="ltr" title="Menu" size="280px">
+    <div class="drawer-menu">
+      <button
+        @click="
+          switchTab('home');
+          mobileMenuOpen = false;
+        "
+      >
+        <icon-home :size="20" />
+        <span>{{ t("home") }}</span>
+      </button>
+    </div>
+  </el-drawer>
+</template>
+
+<script setup>
+import { ref } from "vue";
+
+const mobileMenuOpen = ref(false);
+</script>
+```
+
+**Best Practices**:
+
+- Set `direction="ltr"` for left-to-right slide animation
+- Use `size="280px"` for consistent drawer width
+- Always close drawer on menu item click (`mobileMenuOpen = false`)
+- Test dark mode styling for drawer background and text colors
+
+**Reference**: See [Responsive Design](./responsive-design.md) for complete mobile navigation pattern.
+
 ---
 
 ## Accessibility

@@ -349,6 +349,46 @@ const t = key => {
 </template>
 ```
 
+**Why the `langVersion` trick is necessary**:
+
+The `I18n.t()` function is not reactive by itself. To trigger re-render when language changes:
+
+1. Create a reactive ref that tracks I18n's internal version counter
+2. Access `langVersion.value` inside the `t()` function to establish a reactive dependency
+3. When language changes, I18n increments `state.version`, which updates `langVersion`
+4. Vue detects the change and re-renders components using `t()`
+
+**Pattern breakdown**:
+
+```javascript
+// Step 1: Create reactive ref tracking I18n version
+const langVersion = ref(I18n.state.version);
+
+// Step 2: Access version in t() to create reactivity
+const t = key => {
+  langVersion.value; // This read establishes reactive dependency
+  return I18n.t(key);
+};
+
+// Step 3: Listen for language changes (in onMounted)
+I18n.onChange(() => {
+  langVersion.value = I18n.state.version; // Update triggers re-render
+});
+```
+
+**Common mistake**: Forgetting to access `langVersion.value`
+
+```javascript
+// Bad: No reactivity (doesn't update on language change)
+const t = key => I18n.t(key);
+
+// Good: Reactive (updates when language changes)
+const t = key => {
+  langVersion.value; // Access to trigger reactivity
+  return I18n.t(key);
+};
+```
+
 ### 5. CSS Variables for Theming
 
 Use CSS custom properties, not hardcoded values:

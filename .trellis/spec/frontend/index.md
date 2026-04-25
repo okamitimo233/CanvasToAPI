@@ -15,6 +15,7 @@ This directory contains guidelines for frontend development. Fill in each file w
 | Guide                                             | Description                              | Status   |
 | ------------------------------------------------- | ---------------------------------------- | -------- |
 | [Design System](./design-system.md)               | Colors, typography, icons, CSS variables | ✅ Ready |
+| [Responsive Design](./responsive-design.md)       | Breakpoints, mobile navigation patterns  | ✅ Ready |
 | [Directory Structure](./directory-structure.md)   | Module organization and file layout      | To fill  |
 | [Component Guidelines](./component-guidelines.md) | Component patterns, props, composition   | To fill  |
 | [Hook Guidelines](./hook-guidelines.md)           | Custom hooks, data fetching patterns     | To fill  |
@@ -51,10 +52,16 @@ Before starting frontend development, read these documents:
    - Colors, typography, icons, CSS variables
    - Design philosophy and best practices
 
-2. ✅ [Directory Structure](./directory-structure.md) — Understand project organization
-3. ✅ [Component Guidelines](./component-guidelines.md) — Component patterns and conventions
+2. ✅ [Responsive Design](./responsive-design.md) — **MUST READ** for layout work
+   - Breakpoint strategy (desktop-first)
+   - Mobile navigation patterns (drawer menu)
+   - Responsive grid layouts
+
+3. ✅ [Directory Structure](./directory-structure.md) — Understand project organization
+4. ✅ [Component Guidelines](./component-guidelines.md) — Component patterns and conventions
 
 ### Working on existing code?
 
 1. ✅ [Design System](./design-system.md) — Ensure new code follows design system
-2. ✅ Check relevant guidelines for your task (hooks, state management, etc.)
+2. ✅ [Responsive Design](./responsive-design.md) — Test responsive breakpoints
+3. ✅ Check relevant guidelines for your task (hooks, state management, etc.)
